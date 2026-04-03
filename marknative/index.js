@@ -7,7 +7,7 @@ module.exports = function (Plugin) {
     constructor(config = {}) {
       super();
       this.name = 'marknative';
-      this.version = '1.0.0';
+      this.version = '1.0.1';
       this.description = 'Markdown 转图片插件 - 将 Markdown 转换为 PNG/SVG';
       this.priority = 10;
       this.marknative = null;
@@ -18,12 +18,7 @@ module.exports = function (Plugin) {
       if (this.checked) return;
       this.checked = true;
       
-      try {
-        this.marknative = require('marknative');
-      } catch (error) {
-        this.marknative = null;
-        console.error('MarkNative 加载失败:', error.message);
-      }
+      this.marknative = await import('marknative');
     }
 
     tools = {
