@@ -1,0 +1,9 @@
+{
+  "name": "puppeteer-plugin",
+  "version": "1.0.0",
+  "description": "Puppeteer 网页自动化操作插件，支持 Session 保存、页面截图、元素交互等",
+  "main": "index.js",
+  "dependencies": {
+    "puppeteer-core": "^24.40.0"
+  }
+}
