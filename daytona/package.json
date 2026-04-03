@@ -1,0 +1,12 @@
+{
+  "name": "daytona-plugin",
+  "version": "1.0.0",
+  "description": "Daytona 云开发环境管理插件 - 在 Foliko 中创建和管理云开发环境",
+  "main": "index.js",
+  "keywords": ["daytona", "sandbox", "cloud-development", "foliko", "plugin"],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@daytonaio/sdk": "^0.161.0"
+  }
+}
