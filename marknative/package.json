@@ -1,0 +1,12 @@
+{
+  "name": "marknative-plugin",
+  "version": "1.0.0",
+  "description": "Markdown 转图片插件 - 将 Markdown 转换为 PNG/SVG",
+  "main": "index.js",
+  "keywords": ["markdown", "png", "svg", "image", "render", "foliko", "plugin"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "marknative": "^0.2.0"
+  }
+}
