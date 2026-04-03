@@ -318,6 +318,7 @@ module.exports = function (Plugin) {
         description: '获取页面HTML内容（注意：复杂页面会导致token超标，建议使用 page_structure 获取页面结构）',
         inputSchema: z.object({
           contentOnly: z.boolean().optional().describe('仅获取body内容'),
+          toMarkdown: z.boolean().optional().default(true).describe('是否将HTML转换为Markdown格式，默认开启'),
           pageId: z.string().optional().describe('页面ID，默认当前页面'),
         }),
         execute: async (args) => {
@@ -325,17 +326,114 @@ module.exports = function (Plugin) {
             ? this.pages.get(args.pageId)
             : this.getCurrentPage();
 
-          const html = args.contentOnly
+          let html = args.contentOnly
             ? await page.evaluate(() => document.body ? document.body.innerHTML : '')
             : await page.content();
 
+          let content = html;
+          let isMarkdown = false;
+
+          // 如果需要转换为 Markdown（默认为 true）
+          const shouldConvertToMarkdown = args.toMarkdown !== false;
+          if (shouldConvertToMarkdown) {
+            content = this._htmlToMarkdown(html);
+            isMarkdown = true;
+          }
+
           return {
             success: true,
-            html: html,
-            length: html.length,
+            html: isMarkdown ? undefined : html,
+            markdown: isMarkdown ? content : undefined,
+            content: content,
+            length: content.length,
+            isMarkdown: isMarkdown,
             url: page.url()
           };
         }
+      },
+
+      // HTML 转 Markdown 辅助方法
+      _htmlToMarkdown(html) {
+        if (!html) return '';
+        
+        // 移除脚本和样式标签内容
+        let markdown = html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<!--[\s\S]*?-->/g, '');
+
+        // 标题转换
+        markdown = markdown.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '# $1\n\n');
+        markdown = markdown.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '## $1\n\n');
+        markdown = markdown.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '### $1\n\n');
+        markdown = markdown.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '#### $1\n\n');
+        markdown = markdown.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, '##### $1\n\n');
+        markdown = markdown.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, '###### $1\n\n');
+
+        // 换行和段落
+        markdown = markdown.replace(/<br\s*\/?>/gi, '\n');
+        markdown = markdown.replace(/<\/p>/gi, '\n\n');
+        markdown = markdown.replace(/<\/div>/gi, '\n');
+        markdown = markdown.replace(/<\/li>/gi, '\n');
+
+        // 列表
+        markdown = markdown.replace(/<ul[^>]*>/gi, '\n');
+        markdown = markdown.replace(/<ol[^>]*>/gi, '\n');
+        markdown = markdown.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '- $1\n');
+
+        // 链接和图片
+        markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)');
+        markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*alt=["']([^"']*)["'][^>]*\/?>/gi, '![$2]($1)');
+        markdown = markdown.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*src=["']([^"']*)["'][^>]*\/?>/gi, '![$1]($2)');
+        markdown = markdown.replace(/<img[^>]*src=["']([^"']*)["'][^>]*\/?>/gi, '![]($1)');
+
+        // 粗体和斜体
+        markdown = markdown.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+        markdown = markdown.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+        markdown = markdown.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+        markdown = markdown.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+        // 代码
+        markdown = markdown.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`');
+        markdown = markdown.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, '```\n$1\n```');
+
+        // 表格 (简单支持)
+        const tableRegex = /<table[^>]*>([\s\S]*?)<\/table>/gi;
+        markdown = markdown.replace(tableRegex, (match, tableContent) => {
+          let mdTable = '';
+          const rows = tableContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/gi) || [];
+          rows.forEach((row, idx) => {
+            const cells = row.match(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/gi) || [];
+            const mdRow = cells.map(cell => {
+              return cell.replace(/<t[hd][^>]*>/, '').replace(/<\/t[hd]>/, '').trim();
+            }).join(' | ');
+            if (idx === 0) {
+              mdTable += mdRow + '\n' + mdRow.split('|').map(() => '---').join('|') + '\n';
+            } else {
+              mdTable += mdRow + '\n';
+            }
+          });
+          return mdTable + '\n';
+        });
+
+        // 移除所有剩余 HTML 标签
+        markdown = markdown.replace(/<[^>]+>/g, '');
+
+        // 清理实体编码
+        markdown = markdown
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+
+        // 清理多余空行
+        markdown = markdown.replace(/\n{3,}/g, '\n\n').trim();
+
+        return markdown;
       },
 
       // 获取页面结构（优化版 - 返回精简的结构化数据，避免token超标）
