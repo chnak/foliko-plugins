@@ -1,0 +1,20 @@
+{
+  "name": "poster-designer",
+  "version": "1.0.0",
+  "description": "海报/Banner 图绘制插件 - 基于 Paper.js 实现",
+  "main": "index.js",
+  "dependencies": {
+    "canvas": "^3.2.0",
+    "fontkit": "^2.0.4",
+    "jsdom": "^16.2.2",
+    "paper": "^0.12.18"
+  },
+  "overrides": {
+    "canvas": "^3.2.0"
+  },
+  "resolutions": {
+    "**/canvas": "^3.2.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
