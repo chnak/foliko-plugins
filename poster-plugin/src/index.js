@@ -70,6 +70,9 @@ module.exports = function (Plugin) {
       this._framework = framework
       console.log('[poster] Poster plugin installed (v1.1.0)')
       console.log('[poster] Components:', Object.keys(COMPONENT_TYPES).join(', '))
+      // Object.keys(this.all_tools).map(key=>{
+      //   this._framework.registerTool({...this.all_tools[key],name:key})
+      // })
       return this
     }
 
@@ -79,7 +82,7 @@ module.exports = function (Plugin) {
 
     // ==================== 工具定义 ====================
 
-    all_tools = {
+    tools = {
       // ==================== 画布管理 ====================
 
       /**
@@ -1636,13 +1639,7 @@ module.exports = function (Plugin) {
       },
     }
 
-    install(framework){
-      this._framework=framework
-      // Object.keys(this.all_tools).map(key=>{
-      //   this._framework.registerTool({...this.all_tools[key],name:key})
-      // })
-      return this;
-    }
+
 
 
 
