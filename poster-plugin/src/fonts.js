@@ -11,18 +11,18 @@ const registeredFonts = new Map()
 
 // 系统字体路径
 const systemFonts = [
-  { path: 'C:\\Windows\\Fonts\\msyh.ttc', family: 'Microsoft YaHei' },
-  { path: 'C:\\Windows\\Fonts\\msyhbd.ttc', family: 'Microsoft YaHei Bold', weight: 'bold' },
-  { path: 'C:\\Windows\\Fonts\\simhei.ttf', family: 'SimHei' },
-  { path: 'C:\\Windows\\Fonts\\simsun.ttc', family: 'SimSun' },
-  { path: 'C:\\Windows\\Fonts\\Arial.ttf', family: 'Arial' },
-  { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
-  { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
-  { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
+  // { path: 'C:\\Windows\\Fonts\\msyh.ttc', family: 'Microsoft YaHei' },
+  // { path: 'C:\\Windows\\Fonts\\msyhbd.ttc', family: 'Microsoft YaHei Bold', weight: 'bold' },
+  // { path: 'C:\\Windows\\Fonts\\simhei.ttf', family: 'SimHei' },
+  // { path: 'C:\\Windows\\Fonts\\simsun.ttc', family: 'SimSun' },
+  // { path: 'C:\\Windows\\Fonts\\Arial.ttf', family: 'Arial' },
+  // { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
+  // { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
+  // { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
 ]
 
 // 默认字体
-let defaultFontFamily = 'sans-serif'
+let defaultFontFamily = '微软雅黑'
 
 /**
  * 注册字体文件
@@ -59,13 +59,41 @@ function registerFontFile(fontPath, fontFamily, options = {}) {
  * 初始化字体
  */
 function initFonts() {
-  // 优先尝试注册系统字体
-  for (const font of systemFonts) {
-    if (registerFontFile(font.path, font.family, { weight: font.weight })) {
-      if (font.weight !== 'bold') {
-        defaultFontFamily = font.family
-        console.log(`[poster] 已注册系统字体: ${font.family}`)
-        break
+  // 插件字体目录
+  const pluginFontsDir = path.join(__dirname, '..', 'fonts')
+
+  // 优先加载插件自带的字体
+  if (fs.existsSync(pluginFontsDir)) {
+    const fontFiles = fs.readdirSync(pluginFontsDir)
+    for (const file of fontFiles) {
+      if (!file.endsWith('.ttf') && !file.endsWith('.otf') && !file.endsWith('.ttc')) {
+        continue
+      }
+      const fontPath = path.join(pluginFontsDir, file)
+      const fontName = path.basename(file, path.extname(file))
+      // 尝试注册
+      if (registerFontFile(fontPath, fontName)) {
+        // 微软雅黑设为默认字体
+        if (fontName.includes('微软雅黑') && !fontName.includes('粗体')) {
+          defaultFontFamily = fontName
+          console.log(`[poster] 已注册插件字体(设为默认): ${fontName}`)
+        } else if (!defaultFontFamily || defaultFontFamily === 'sans-serif') {
+          defaultFontFamily = fontName
+          console.log(`[poster] 已注册插件字体: ${fontName}`)
+        }
+      }
+    }
+  }
+
+  // 如果没有注册到插件字体，再尝试系统字体
+  if (!defaultFontFamily || defaultFontFamily === 'sans-serif') {
+    for (const font of systemFonts) {
+      if (registerFontFile(font.path, font.family, { weight: font.weight })) {
+        if (font.weight !== 'bold') {
+          defaultFontFamily = font.family
+          console.log(`[poster] 已注册系统字体: ${font.family}`)
+          break
+        }
       }
     }
   }
