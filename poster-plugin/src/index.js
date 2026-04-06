@@ -66,19 +66,7 @@ module.exports = function (Plugin) {
       this._canvasManager = new CanvasManager()
     }
 
-    async install(framework) {
-      this._framework = framework
-      console.log('[poster] Poster plugin installed (v1.1.0)')
-      console.log('[poster] Components:', Object.keys(COMPONENT_TYPES).join(', '))
-      Object.keys(this.all_tools).map(key=>{
-        this._framework.registerTool({...this.all_tools[key],name:key})
-      })
-      return this
-    }
-
-    start(framework) {
-      console.log('[poster] Poster plugin started')
-    }
+    
 
     // ==================== 工具定义 ====================
 
@@ -1640,7 +1628,20 @@ module.exports = function (Plugin) {
     }
 
 
+    async install(framework) {
+      this._framework = framework
+      console.log('[poster] Poster plugin installed (v1.1.0)')
+      console.log('[poster] Components:', Object.keys(COMPONENT_TYPES).join(', '))
+      
+      return this
+    }
 
+    start(framework) {
+      Object.keys(this.all_tools).map(key=>{
+        this._framework.registerTool({...this.all_tools[key],name:key})
+      })
+      console.log('[poster] Poster plugin started')
+    }
 
 
     reload(framework) {
