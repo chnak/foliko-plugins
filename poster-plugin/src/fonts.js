@@ -11,14 +11,25 @@ const registeredFonts = new Map()
 
 // 系统字体路径
 const systemFonts = [
-  // { path: 'C:\\Windows\\Fonts\\msyh.ttc', family: 'Microsoft YaHei' },
-  // { path: 'C:\\Windows\\Fonts\\msyhbd.ttc', family: 'Microsoft YaHei Bold', weight: 'bold' },
-  // { path: 'C:\\Windows\\Fonts\\simhei.ttf', family: 'SimHei' },
-  // { path: 'C:\\Windows\\Fonts\\simsun.ttc', family: 'SimSun' },
-  // { path: 'C:\\Windows\\Fonts\\Arial.ttf', family: 'Arial' },
-  // { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
-  // { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
-  // { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
+  // Windows 字体
+  { path: 'C:\\Windows\\Fonts\\msyh.ttc', family: 'Microsoft YaHei' },
+  { path: 'C:\\Windows\\Fonts\\msyhbd.ttc', family: 'Microsoft YaHei Bold', weight: 'bold' },
+  { path: 'C:\\Windows\\Fonts\\simhei.ttf', family: 'SimHei' },
+  { path: 'C:\\Windows\\Fonts\\simsun.ttc', family: 'SimSun' },
+  { path: 'C:\\Windows\\Fonts\\Arial.ttf', family: 'Arial' },
+  { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
+  { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
+  { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
+  // Linux 字体
+  { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
+  { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
+  { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
+  { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
+  { path: '/usr/share/fonts/TTF/NotoSans-Regular.ttf', family: 'Noto Sans' },
+  // macOS 字体
+  { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
+  { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
 ]
 
 // 默认字体
@@ -102,6 +113,26 @@ function initFonts() {
   if (!registeredFonts.has(defaultFontFamily)) {
     registeredFonts.set('sans-serif', { path: null })
     console.log('[poster] 使用默认字体: sans-serif')
+  }
+
+  // 注册 emoji 字体（用于支持 emoji 渲染）
+  const emojiFonts = [
+    { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
+    { path: '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
+    { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
+    { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
+    { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
+    { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
+    { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
+  ]
+
+  for (const font of emojiFonts) {
+    if (registerFontFile(font.path, font.family)) {
+      console.log(`[poster] 已注册 emoji 字体: ${font.family}`)
+      break
+    }
   }
 }
 
