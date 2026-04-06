@@ -1,7 +1,7 @@
 {
-  "name": "poster-designer",
-  "version": "1.0.0",
-  "description": "海报/Banner 图绘制插件 - 基于 Paper.js 实现",
+  "name": "poster-plugin",
+  "version": "1.2.0",
+  "description": "海报/Banner 设计插件 - 基于 Paper.js 实现，支持 35 个组件",
   "main": "index.js",
   "dependencies": {
     "canvas": "^3.2.0",
@@ -16,5 +16,13 @@
     "**/canvas": "^3.2.0"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "poster",
+    "banner",
+    "design",
+    "canvas",
+    "paper.js",
+    "foliko"
+  ]
 }
