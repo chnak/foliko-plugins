@@ -1638,9 +1638,10 @@ module.exports = function (Plugin) {
 
     install(framework){
       this._framework=framework
-      Object.keys(this.all_tools).map(key=>{
-        this._framework.registerTool({...this.all_tools[key],name:key})
-      })
+      // Object.keys(this.all_tools).map(key=>{
+      //   this._framework.registerTool({...this.all_tools[key],name:key})
+      // })
+      return this;
     }
 
 
