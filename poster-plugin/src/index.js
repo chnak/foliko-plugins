@@ -70,7 +70,7 @@ module.exports = function (Plugin) {
 
     // ==================== 工具定义 ====================
 
-    all_tools = {
+    tools = {
       // ==================== 画布管理 ====================
 
       /**
@@ -1637,9 +1637,9 @@ module.exports = function (Plugin) {
     }
 
     start(framework) {
-      Object.keys(this.all_tools).map(key=>{
-        this._framework.registerTool({...this.all_tools[key],name:key})
-      })
+      // Object.keys(this.all_tools).map(key=>{
+      //   this._framework.registerTool({...this.all_tools[key],name:key})
+      // })
       console.log('[poster] Poster plugin started')
     }
 

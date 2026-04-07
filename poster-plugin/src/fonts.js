@@ -9,6 +9,17 @@ const { registerFont: registerFontFn } = require('canvas')
 // 已注册的字体
 const registeredFonts = new Map()
 
+// Emoji 字体名称映射（用于统一识别）
+const emojiFontMappings = {
+  'NotoColorEmoji': 'Noto Color Emoji',
+  'NotoColorEmoji-Regular': 'Noto Color Emoji',
+  'Noto Emoji': 'Noto Emoji',
+  'NotoEmoji-Regular': 'Noto Emoji',
+  'Apple Color Emoji': 'Apple Color Emoji',
+  'Segoe UI Emoji': 'Segoe UI Emoji',
+  'Symbola': 'Symbola',
+}
+
 // 系统字体路径
 const systemFonts = [
   // Windows 字体
@@ -20,13 +31,20 @@ const systemFonts = [
   { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
   { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
   { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
-  // Linux 字体
+  // Linux emoji 字体（扩展搜索路径）
   { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
   { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
+  { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/google-noto-cursive/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/noto-fonts/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/TTF/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+  { path: '/usr/share/fonts/truetype/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
   { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
   { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
   { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
   { path: '/usr/share/fonts/TTF/NotoSans-Regular.ttf', family: 'Noto Sans' },
+  { path: '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
   // macOS 字体
   { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
   { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
@@ -67,6 +85,19 @@ function registerFontFile(fontPath, fontFamily, options = {}) {
 }
 
 /**
+ * 判断是否为 Emoji 字体
+ */
+function isEmojiFont(fontName) {
+  if (!fontName) return false
+  const lower = fontName.toLowerCase()
+  return (
+    lower.includes('emoji') ||
+    lower.includes('color') ||
+    lower.includes('symbola')
+  )
+}
+
+/**
  * 初始化字体
  */
 function initFonts() {
@@ -82,15 +113,27 @@ function initFonts() {
       }
       const fontPath = path.join(pluginFontsDir, file)
       const fontName = path.basename(file, path.extname(file))
+
+      // 检查是否为 Emoji 字体，如果是则使用标准名称注册
+      let finalFontName = fontName
+      if (isEmojiFont(fontName)) {
+        // 尝试映射到标准名称
+        finalFontName = emojiFontMappings[fontName] || 'Noto Color Emoji'
+      }
+
       // 尝试注册
-      if (registerFontFile(fontPath, fontName)) {
-        // 微软雅黑设为默认字体
-        if (fontName.includes('微软雅黑') && !fontName.includes('粗体')) {
-          defaultFontFamily = fontName
-          console.log(`[poster] 已注册插件字体(设为默认): ${fontName}`)
-        } else if (!defaultFontFamily || defaultFontFamily === 'sans-serif') {
-          defaultFontFamily = fontName
-          console.log(`[poster] 已注册插件字体: ${fontName}`)
+      if (registerFontFile(fontPath, finalFontName)) {
+        if (isEmojiFont(finalFontName)) {
+          console.log(`[poster] 已注册插件 Emoji 字体: ${finalFontName}`)
+        } else {
+          // 微软雅黑设为默认字体
+          if (fontName.includes('微软雅黑') && !fontName.includes('粗体')) {
+            defaultFontFamily = finalFontName
+            console.log(`[poster] 已注册插件字体(设为默认): ${finalFontName}`)
+          } else if (!defaultFontFamily || defaultFontFamily === 'sans-serif') {
+            defaultFontFamily = finalFontName
+            console.log(`[poster] 已注册插件字体: ${finalFontName}`)
+          }
         }
       }
     }
@@ -115,23 +158,36 @@ function initFonts() {
     console.log('[poster] 使用默认字体: sans-serif')
   }
 
-  // 注册 emoji 字体（用于支持 emoji 渲染）
+  // 注册系统 emoji 字体（用于支持 emoji 渲染）
   const emojiFonts = [
+    // Linux
     { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/google-noto-cursive/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/noto-fonts/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/TTF/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    { path: '/usr/share/fonts/truetype/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
     { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
     { path: '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
     { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
     { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
     { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
-    { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
+    // macOS
     { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
     { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
   ]
 
   for (const font of emojiFonts) {
     if (registerFontFile(font.path, font.family)) {
-      console.log(`[poster] 已注册 emoji 字体: ${font.family}`)
-      break
+      // 只在还没注册过 Noto Color Emoji 时打印
+      if (!registeredFonts.has('Noto Color Emoji') || font.family === 'Noto Color Emoji') {
+        console.log(`[poster] 已注册 emoji 字体: ${font.family}`)
+      }
+      // 一旦找到 Noto Color Emoji 就停止
+      if (font.family === 'Noto Color Emoji' && registeredFonts.has('Noto Color Emoji')) {
+        break
+      }
     }
   }
 }

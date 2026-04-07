@@ -9,6 +9,8 @@ const { validateFont, getDefaultFont, getRegisteredFonts } = require('../fonts')
  * 检测文本是否包含 emoji
  */
 function containsEmoji(text) {
+  if (!text || typeof text !== 'string') return false
+  
   // Emoji Unicode 范围
   const emojiRanges = [
     /\u{1F600}-\u{1F64F}/u, // 表情符号
@@ -46,18 +48,24 @@ function getFontForText(requestedFont, text) {
   if (containsEmoji(text)) {
     const registeredFonts = getRegisteredFonts()
 
-    // 优先查找专门的 emoji 字体
-    const emojiFont = registeredFonts.find(f =>
-      f.includes('Color Emoji') ||
-      f.includes('Apple Color Emoji') ||
-      f.includes('Noto Emoji') ||
-      f.includes('Symbola') ||
-      f.includes('Segoe UI Emoji')
-    )
+    // 优先查找专门的 emoji 字体（多种命名方式）
+    const emojiFont = registeredFonts.find(f => {
+      if (!f) return false
+      const lower = f.toLowerCase()
+      return (
+        lower.includes('color emoji') ||      // Noto Color Emoji, Apple Color Emoji
+        lower.includes('noto emoji') ||       // Noto Emoji
+        lower.includes('segoe ui emoji') ||    // Windows emoji
+        lower.includes('symbola') ||           // Symbola
+        lower.includes('emoji')                // 任何包含 emoji 的字体
+      )
+    })
 
     if (emojiFont) {
       console.log(`[poster] 检测到 emoji，使用字体: ${emojiFont}`)
       return emojiFont
+    } else {
+      console.log(`[poster] 检测到 emoji，但未找到专用 emoji 字体，已注册字体: ${registeredFonts.join(', ')}`)
     }
   }
 
