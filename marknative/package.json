@@ -7,6 +7,6 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "marknative": "^0.2.0"
+    "marknative": "^0.3.1"
   }
 }

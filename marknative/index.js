@@ -23,9 +23,10 @@ module.exports = function (Plugin) {
 
     tools = {
       marknative_render: {
-        description: '将 Markdown 渲染为图片（Base64 编码返回）',
+        description: '将 Markdown 渲染为图片并保存到文件（返回文件路径）',
         inputSchema: z.object({
           markdown: z.string().describe('Markdown 内容'),
+          outputPath: z.string().optional().describe('输出文件路径（如 output.png），不提供则自动生成'),
           format: z.enum(['png', 'svg']).optional().describe('输出格式：png 或 svg，默认 png'),
           theme: z.string().optional().describe('主题：default, github, solarized, sepia, rose, dark, nord, dracula, ocean, forest'),
           singlePage: z.boolean().optional().describe('是否渲染为单张图片（默认 false）'),
@@ -34,7 +35,7 @@ module.exports = function (Plugin) {
         execute: async (args) => {
           try {
             await this._ensureMarkNative();
-            
+
             if (!this.marknative) {
               return {
                 success: false,
@@ -43,29 +44,56 @@ module.exports = function (Plugin) {
             }
 
             const { renderMarkdown } = this.marknative;
-            
+
+            const format = args.format || 'png';
             const options = {
-              format: args.format || 'png',
+              format,
               singlePage: args.singlePage || false
             };
-            
+
             if (args.theme) options.theme = args.theme;
             if (args.codeTheme) options.codeHighlighting = { theme: args.codeTheme };
 
             const pages = await renderMarkdown(args.markdown, options);
-            
+
             if (pages.length === 0) {
               return { success: false, error: '渲染失败，无输出' };
             }
 
-            const page = pages[0];
+            // 自动生成输出路径
+            let basePath = args.outputPath;
+            if (!basePath) {
+              const timestamp = Date.now().toString(36);
+              basePath = `output/markdown-${timestamp}.${format}`;
+            }
+
+            const dir = path.dirname(basePath);
+            if (dir && dir !== '.' && !fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+
+            const files = [];
+            for (let i = 0; i < pages.length; i++) {
+              const page = pages[i];
+              const filePath = pages.length === 1
+                ? basePath
+                : basePath.replace(/(\.[^.]+)$/, `-${String(i + 1).padStart(2, '0')}$1`);
+
+              if (page.format === 'png') {
+                fs.writeFileSync(filePath, page.data);
+              } else {
+                fs.writeFileSync(filePath, page.data, 'utf-8');
+              }
+              files.push(filePath);
+            }
+
             return {
               success: true,
+              files,
               pageCount: pages.length,
-              format: page.format,
-              data: page.format === 'png' ? page.data.toString('base64') : page.data,
-              isBase64: page.format === 'png',
-              message: page.format === 'png' ? 'PNG 图片已生成' : 'SVG 已生成'
+              message: pages.length === 1
+                ? `图片已生成: ${files[0]}`
+                : `已生成 ${pages.length} 页图片: ${files.join(', ')}`
             };
           } catch (error) {
             return { success: false, error: error.message };
