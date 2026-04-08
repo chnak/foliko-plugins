@@ -55,7 +55,9 @@ function getFontForText(requestedFont, text) {
       return (
         lower.includes('color emoji') ||      // Noto Color Emoji, Apple Color Emoji
         lower.includes('noto emoji') ||       // Noto Emoji
-        lower.includes('segoe ui emoji') ||    // Windows emoji
+        lower.includes('segoe ui emoji') ||    // Windows Segoe UI Emoji
+        lower.includes('segoe ui symbol') ||  // Windows Segoe UI Symbol
+        lower.includes('segui') ||            // Windows Segoe UI 开头
         lower.includes('symbola') ||           // Symbola
         lower.includes('emoji')                // 任何包含 emoji 的字体
       )

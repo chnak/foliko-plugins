@@ -17,6 +17,7 @@ const emojiFontMappings = {
   'NotoEmoji-Regular': 'Noto Emoji',
   'Apple Color Emoji': 'Apple Color Emoji',
   'Segoe UI Emoji': 'Segoe UI Emoji',
+  'SegoeUI Emoji': 'Segoe UI Emoji',
   'Symbola': 'Symbola',
 }
 
@@ -31,6 +32,11 @@ const systemFonts = [
   { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
   { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
   { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
+  // Windows Emoji 字体
+  { path: 'C:\\Windows\\Fonts\\seguiemj.ttf', family: 'Segoe UI Emoji' },
+  { path: 'C:\\Windows\\Fonts\\seguisym.ttf', family: 'Segoe UI Symbol' },
+  { path: 'C:\\Windows\\Fonts\\seguisb.ttf', family: 'Segoe UI Symbol' },
+  { path: 'C:\\Windows\\Fonts\\EmojiOne Color.ttf', family: 'EmojiOne Color' },
   // Linux emoji 字体（扩展搜索路径）
   { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
   { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
@@ -160,6 +166,10 @@ function initFonts() {
 
   // 注册系统 emoji 字体（用于支持 emoji 渲染）
   const emojiFonts = [
+    // Windows Emoji 字体（优先）
+    { path: 'C:\\Windows\\Fonts\\seguiemj.ttf', family: 'Segoe UI Emoji' },
+    { path: 'C:\\Windows\\Fonts\\seguisym.ttf', family: 'Segoe UI Symbol' },
+    { path: 'C:\\Windows\\Fonts\\seguisb.ttf', family: 'Segoe UI Symbol' },
     // Linux
     { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
     { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
