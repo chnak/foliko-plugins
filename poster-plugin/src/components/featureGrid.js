@@ -6,20 +6,6 @@ const paper = require('paper')
 
 /**
  * 创建特性网格
- * 
- * @param {Object} project - Paper.js 项目
- * @param {Object} canvas - 画布对象
- * @param {Object} args - 组件参数
- * @param {number} args.x - X坐标
- * @param {number} args.y - Y坐标
- * @param {number} args.columns - 列数
- * @param {number} args.itemWidth - 每个特性宽度
- * @param {number} args.itemHeight - 每个特性高度
- * @param {number} args.gap - 间距
- * @param {Array} args.items - 特性数组 [{icon, title, description}]
- * @param {string} args.background - 背景色
- * @param {string} args.borderColor - 边框颜色
- * @param {number} args.radius - 圆角半径
  */
 function createFeatureGrid(project, canvas, args) {
   const {
@@ -35,7 +21,13 @@ function createFeatureGrid(project, canvas, args) {
   } = args
 
   const elements = []
-  const rows = Math.ceil(items.length / columns)
+
+  // 确保 items 是数组
+  if (!Array.isArray(items)) {
+    items = []
+  }
+
+  const rows = items.length > 0 ? Math.ceil(items.length / columns) : 0
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
@@ -55,6 +47,9 @@ function createFeatureGrid(project, canvas, args) {
     bg.strokeColor = new paper.Color(borderColor)
     bg.strokeWidth = 0.5
     bg.opacity = 0.8
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(bg)
+    }
     elements.push({ type: 'rectangle', id: bg.id })
 
     const padding = 15
@@ -69,6 +64,9 @@ function createFeatureGrid(project, canvas, args) {
         fillColor: new paper.Color(item.iconColor || '#00ff88'),
         justification: 'left',
       })
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(iconText)
+      }
       elements.push({ type: 'text', id: iconText.id })
       itemYOffset += 35
     }
@@ -82,6 +80,9 @@ function createFeatureGrid(project, canvas, args) {
         fillColor: new paper.Color(item.titleColor || '#ffffff'),
         justification: 'left',
       })
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(titleText)
+      }
       elements.push({ type: 'text', id: titleText.id })
       itemYOffset += 22
     }
@@ -95,6 +96,9 @@ function createFeatureGrid(project, canvas, args) {
         fillColor: new paper.Color(item.descColor || '#888888'),
         justification: 'left',
       })
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(descText)
+      }
       elements.push({ type: 'text', id: descText.id })
     }
   }
@@ -102,10 +106,11 @@ function createFeatureGrid(project, canvas, args) {
   return {
     success: true,
     elements,
-    width: columns * itemWidth + (columns - 1) * gap,
-    height: rows * itemHeight + (rows - 1) * gap,
+    width: columns * itemWidth + Math.max(0, columns - 1) * gap,
+    height: rows * itemHeight + Math.max(0, rows - 1) * gap,
     rows,
     cols: columns,
+    type: 'featureGrid',
   }
 }
 

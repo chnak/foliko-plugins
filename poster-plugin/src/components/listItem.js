@@ -26,7 +26,8 @@ const paper = require('paper')
  */
 function createListItem(project, canvas, args) {
   const {
-    x, y,
+    x = 0,
+    y = 0,
     width = 400,
     icon = '→',
     title,
@@ -109,7 +110,7 @@ function createListItem(project, canvas, args) {
     elements.push({ type: 'text', id: badgeText.id })
   }
 
-  return { success: true, elements }
+  return { success: true, elements, type: 'listItem' }
 }
 
 /**
@@ -117,7 +118,7 @@ function createListItem(project, canvas, args) {
  */
 function createList(project, canvas, args) {
   const {
-    x, y,
+    x = 0, y = 0,
     items = [],
     gap = 10,
     width = 400,
@@ -139,8 +140,8 @@ function createList(project, canvas, args) {
     success: true,
     elements,
     height: currentY - y,
+    type: 'list',
   }
 }
 
-module.exports = createListItem
-module.exports.createList = createList
+module.exports = { createListItem, createList }

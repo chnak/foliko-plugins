@@ -7,7 +7,8 @@
     "canvas": "^3.2.0",
     "fontkit": "^2.0.4",
     "jsdom": "^16.2.2",
-    "paper": "^0.12.18"
+    "paper": "^0.12.18",
+    "qrcode": "^1.5.4"
   },
   "overrides": {
     "canvas": "^3.2.0"

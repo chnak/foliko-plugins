@@ -6,25 +6,11 @@ const paper = require('paper')
 
 /**
  * 创建 CTA 按钮
- * 
- * @param {Object} project - Paper.js 项目
- * @param {Object} canvas - 画布对象
- * @param {Object} args - 组件参数
- * @param {number} args.x - X坐标（居中）
- * @param {number} args.y - Y坐标
- * @param {string} args.text - 按钮文字
- * @param {string} args.background - 背景色
- * @param {string} args.color - 文字颜色
- * @param {string} args.border - 边框颜色
- * @param {number} args.fontSize - 字体大小
- * @param {number} args.padding - 内边距
- * @param {number} args.radius - 圆角半径
- * @param {Object} args.shadow - 阴影设置
  */
 function createCTA(project, canvas, args) {
   const {
-    x, y,
-    text,
+    x = 0, y = 0,
+    text = '',
     background = '#007bff',
     color = '#ffffff',
     border,
@@ -32,13 +18,18 @@ function createCTA(project, canvas, args) {
     padding = 25,
     radius = 8,
     shadow,
+    width: customWidth,
   } = args
 
   const elements = []
 
-  // 计算按钮尺寸
-  const textWidth = text.length * fontSize * 0.7
-  const btnWidth = textWidth + padding * 2
+  // 确保 text 是字符串
+  const textStr = String(text || '')
+  // 使用更准确的字符宽度估算：中文约1.0，英文约0.5
+  const chineseChars = (textStr.match(/[\u4e00-\u9fa5]/g) || []).length
+  const otherChars = textStr.length - chineseChars
+  const textWidth = chineseChars * fontSize * 1.0 + otherChars * fontSize * 0.5
+  const btnWidth = customWidth || (textWidth + padding * 2)
   const btnHeight = fontSize + padding * 2
 
   const btnX = x - btnWidth / 2
@@ -56,22 +47,32 @@ function createCTA(project, canvas, args) {
     button.strokeWidth = 1
   }
 
-  if (shadow) {
-    button.shadowColor = new paper.Color(shadow.color || 'rgba(0,0,0,0.3)')
-    button.shadowBlur = shadow.blur || 10
-    button.shadowOffset = new paper.Point(shadow.offsetX || 0, shadow.offsetY || 4)
+  if (shadow && typeof shadow === 'object') {
+    try {
+      if (shadow.color) button.shadowColor = new paper.Color(shadow.color)
+      button.shadowBlur = shadow.blur || 10
+      button.shadowOffset = new paper.Point(shadow.offsetX || 0, shadow.offsetY || 4)
+    } catch (e) {
+      // 忽略阴影错误
+    }
   }
 
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(button)
+  }
   elements.push({ type: 'rectangle', id: button.id })
 
   // 绘制文字
   const buttonText = new paper.PointText({
     point: [x, y + btnHeight / 2 + fontSize / 3],
-    content: text,
+    content: textStr,
     fontSize: fontSize,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(buttonText)
+  }
   elements.push({ type: 'text', id: buttonText.id })
 
   return {
@@ -79,6 +80,7 @@ function createCTA(project, canvas, args) {
     elements,
     width: btnWidth,
     height: btnHeight,
+    type: 'cta',
   }
 }
 

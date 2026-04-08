@@ -21,6 +21,7 @@ const {
   addImage,
   addText,
   addArtText,
+  addRichText,
   addBackground,
   addSVG,
 } = require('./elements')
@@ -51,6 +52,15 @@ const {
   createChart,
   createWatermark,
   createTable,
+  createButton,
+  createIcon,
+  createQRCode,
+  createFrame,
+  createBubble,
+  createRibbon,
+  createSeal,
+  createHighlightText,
+  createBarcode,
 } = require('./components')
 
 module.exports = function (Plugin) {
@@ -94,11 +104,13 @@ module.exports = function (Plugin) {
           preset: z.string().optional().describe('预设尺寸key'),
           width: z.number().optional().describe('自定义宽度'),
           height: z.number().optional().describe('自定义高度'),
-          background: z.string().optional().describe('背景颜色'),
+          background: z.union([z.string(), z.object({
+            image: z.string()
+          })]).optional().describe('背景颜色或图片路径'),
         }),
         execute: async (args) => {
           try {
-            const result = this._canvasManager.create(args)
+            const result = await this._canvasManager.create(args)
             return { success: true, ...result }
           } catch (err) {
             return { success: false, error: err.message }
@@ -146,7 +158,7 @@ module.exports = function (Plugin) {
        * 添加背景
        */
       add_poster_background: {
-        description: '为画布添加纯色或渐变背景',
+        description: '为画布添加纯色、渐变或图片背景',
         inputSchema: z.object({
           color: z.string().optional().describe('纯色背景'),
           gradient: z.object({
@@ -154,13 +166,14 @@ module.exports = function (Plugin) {
             colors: z.array(z.string()).describe('颜色数组'),
             direction: z.number().optional().describe('方向角度，默认45'),
           }).optional(),
+          image: z.string().optional().describe('背景图片路径（本地路径或URL）'),
         }),
         execute: async (args) => {
           try {
             if (!this._canvasManager.isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addBackground(
+            return await addBackground(
               this._canvasManager.getProject(),
               this._canvasManager.getCanvas(),
               args
@@ -347,6 +360,82 @@ module.exports = function (Plugin) {
       },
 
       /**
+       * 添加富文本（支持旋转和多种样式）
+       */
+      add_poster_rich_text: {
+        description: '添加富文本，支持旋转、描边、渐变、阴影等多种样式',
+        inputSchema: z.object({
+          // 位置和尺寸
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().optional().describe('文本区域宽度（用于自动换行）'),
+
+          // 文本内容
+          text: z.string().describe('文字内容'),
+
+          // 字体样式
+          fontSize: z.number().optional().describe('字体大小，默认48'),
+          fontFamily: z.string().optional().describe('字体名称'),
+          fontWeight: z.union([z.string(), z.number()]).optional().describe('字重 normal/bold 或 100-900'),
+          fontStyle: z.enum(['normal', 'italic', 'oblique']).optional().describe('字体风格'),
+          bold: z.boolean().optional().describe('粗体'),
+          italic: z.boolean().optional().describe('斜体'),
+
+          // 文字装饰
+          underline: z.boolean().optional().describe('下划线'),
+          strikethrough: z.boolean().optional().describe('删除线'),
+
+          // 颜色
+          color: z.string().optional().describe('文字颜色，默认#ffffff'),
+          backgroundColor: z.string().optional().describe('文字背景色'),
+          gradient: z.object({
+            colors: z.array(z.string()).describe('渐变颜色数组'),
+            direction: z.number().optional().describe('方向角度'),
+          }).optional().describe('渐变填充'),
+
+          // 描边
+          strokeColor: z.string().optional().describe('描边颜色'),
+          strokeWidth: z.number().optional().describe('描边宽度'),
+
+          // 阴影
+          shadow: z.object({
+            color: z.string().optional().describe('阴影颜色'),
+            blur: z.number().optional().describe('模糊度'),
+            offsetX: z.number().optional().describe('X偏移'),
+            offsetY: z.number().optional().describe('Y偏移'),
+          }).optional(),
+
+          // 间距
+          letterSpacing: z.number().optional().describe('字间距'),
+          lineSpacing: z.number().optional().describe('行间距增量'),
+          lineHeight: z.number().optional().describe('行高'),
+
+          // 对齐
+          align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('对齐方式'),
+
+          // 变换
+          rotation: z.number().optional().describe('旋转角度（度）'),
+          scale: z.union([z.number(), z.object({
+            x: z.number().optional(),
+            y: z.number().optional()
+          })]).optional().describe('缩放'),
+
+          // 透明度
+          opacity: z.number().optional().describe('透明度 0-1，默认1'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return addRichText(this._canvasManager.getProject(), args)
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
        * 添加图片
        */
       add_poster_image: {
@@ -364,7 +453,7 @@ module.exports = function (Plugin) {
             if (!this._canvasManager.isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addImage(this._canvasManager.getProject(), args)
+            return await addImage(this._canvasManager.getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -1445,6 +1534,339 @@ module.exports = function (Plugin) {
         },
       },
 
+      /**
+       * 添加按钮
+       */
+      add_poster_button: {
+        description: '添加按钮组件',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().optional().describe('宽度，默认200'),
+          height: z.number().optional().describe('高度，默认60'),
+          text: z.string().optional().describe('按钮文字'),
+          fontSize: z.number().optional().describe('字体大小'),
+          color: z.string().optional().describe('文字颜色'),
+          backgroundColor: z.string().optional().describe('背景色'),
+          borderColor: z.string().optional().describe('边框颜色'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          radius: z.number().optional().describe('圆角'),
+          shadow: z.object({
+            color: z.string().optional(),
+            blur: z.number().optional(),
+            offsetX: z.number().optional(),
+            offsetY: z.number().optional(),
+          }).optional(),
+          gradient: z.object({
+            colors: z.array(z.string()).describe('渐变颜色数组'),
+          }).optional(),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createButton(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加图标
+       */
+      add_poster_icon: {
+        description: '添加图标（emoji或图片）',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          size: z.number().optional().describe('图标大小，默认64'),
+          icon: z.string().describe('图标内容（emoji或图片URL）'),
+          color: z.string().optional().describe('颜色'),
+          backgroundColor: z.string().optional().describe('背景色'),
+          borderColor: z.string().optional().describe('边框颜色'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          radius: z.number().optional().describe('圆角'),
+          shadow: z.object({
+            color: z.string().optional(),
+            blur: z.number().optional(),
+            offsetX: z.number().optional(),
+            offsetY: z.number().optional(),
+          }).optional(),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createIcon(
+              this._canvasManager.getProject(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加二维码
+       */
+      // add_poster_qrcode: {
+      //   description: '添加二维码',
+      //   inputSchema: z.object({
+      //     x: z.number().describe('X坐标'),
+      //     y: z.number().describe('Y坐标'),
+      //     size: z.number().optional().describe('二维码大小，默认200'),
+      //     content: z.string().describe('二维码内容'),
+      //     color: z.string().optional().describe('前景色'),
+      //     backgroundColor: z.string().optional().describe('背景色'),
+      //     logo: z.string().optional().describe('中间logo图片路径'),
+      //     logoSize: z.number().optional().describe('logo大小'),
+      //     opacity: z.number().optional().describe('透明度'),
+      //   }),
+      //   execute: async (args) => {
+      //     try {
+      //       if (!this._canvasManager.isCreated()) {
+      //         return { success: false, error: 'No canvas created' }
+      //       }
+      //       return await createQRCode(
+      //         this._canvasManager.getProject(),
+      //         this._canvasManager.getCanvas(),
+      //         args
+      //       )
+      //     } catch (err) {
+      //       return { success: false, error: err.message }
+      //     }
+      //   },
+      // },
+
+      /**
+       * 添加装饰边框
+       */
+      add_poster_frame: {
+        description: '添加装饰边框',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().describe('宽度'),
+          height: z.number().describe('高度'),
+          style: z.enum(['simple', 'double', 'dashed', 'dotted', 'corner', 'vintage', 'modern', 'floral']).optional().describe('边框样式'),
+          color: z.string().optional().describe('边框颜色'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          radius: z.number().optional().describe('圆角'),
+          padding: z.number().optional().describe('内边距'),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createFrame(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加对话气泡
+       */
+      add_poster_bubble: {
+        description: '添加对话气泡',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().optional().describe('宽度，默认300'),
+          height: z.number().optional().describe('高度，默认100'),
+          text: z.string().describe('气泡文字'),
+          fontSize: z.number().optional().describe('字体大小'),
+          color: z.string().optional().describe('文字颜色'),
+          backgroundColor: z.string().optional().describe('背景色'),
+          borderColor: z.string().optional().describe('边框颜色'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          radius: z.number().optional().describe('圆角'),
+          tailDirection: z.enum(['bottom', 'top', 'left', 'right']).optional().describe('尾巴方向'),
+          tailPosition: z.enum(['left', 'center', 'right']).optional().describe('尾巴位置'),
+          shadow: z.object({
+            color: z.string().optional(),
+            blur: z.number().optional(),
+            offsetX: z.number().optional(),
+            offsetY: z.number().optional(),
+          }).optional(),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createBubble(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加丝带
+       */
+      add_poster_ribbon: {
+        description: '添加丝带飘带',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().optional().describe('宽度，默认300'),
+          text: z.string().optional().describe('丝带文字'),
+          fontSize: z.number().optional().describe('字体大小'),
+          color: z.string().optional().describe('文字颜色'),
+          backgroundColor: z.string().optional().describe('背景色'),
+          borderColor: z.string().optional().describe('边框颜色'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          style: z.enum(['fold', 'diagonal', 'corner']).optional().describe('丝带样式'),
+          shadow: z.object({
+            color: z.string().optional(),
+            blur: z.number().optional(),
+            offsetX: z.number().optional(),
+            offsetY: z.number().optional(),
+          }).optional(),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createRibbon(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加印章
+       */
+      add_poster_seal: {
+        description: '添加印章效果',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          size: z.number().optional().describe('印章大小，默认100'),
+          text: z.string().optional().describe('印章文字'),
+          fontSize: z.number().optional().describe('字体大小'),
+          color: z.string().optional().describe('印章颜色'),
+          style: z.enum(['circle', 'square', 'star', 'hexagon']).optional().describe('印章形状'),
+          borderWidth: z.number().optional().describe('边框宽度'),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createSeal(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加高亮文字
+       */
+      add_poster_highlight_text: {
+        description: '添加高亮文字（荧光笔效果）',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          text: z.string().describe('文字内容'),
+          fontSize: z.number().optional().describe('字体大小'),
+          color: z.string().optional().describe('文字颜色'),
+          highlightColor: z.string().optional().describe('高亮颜色'),
+          highlightStyle: z.enum(['marker', 'underline', 'background', 'stroke', 'neon']).optional().describe('高亮样式'),
+          strokeWidth: z.number().optional().describe('描边宽度'),
+          shadow: z.object({
+            color: z.string().optional(),
+            blur: z.number().optional(),
+            offsetX: z.number().optional(),
+            offsetY: z.number().optional(),
+          }).optional(),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._canvasManager.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createHighlightText(
+              this._canvasManager.getProject(),
+              this._canvasManager.getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 添加条形码
+       */
+      // add_poster_barcode: {
+      //   description: '添加条形码',
+      //   inputSchema: z.object({
+      //     x: z.number().describe('X坐标'),
+      //     y: z.number().describe('Y坐标'),
+      //     width: z.number().optional().describe('宽度，默认300'),
+      //     height: z.number().optional().describe('高度，默认100'),
+      //     content: z.string().describe('条形码内容'),
+      //     color: z.string().optional().describe('条形码颜色'),
+      //     showText: z.boolean().optional().describe('是否显示文字'),
+      //     textColor: z.string().optional().describe('文字颜色'),
+      //     fontSize: z.number().optional().describe('字体大小'),
+      //     opacity: z.number().optional().describe('透明度'),
+      //   }),
+      //   execute: async (args) => {
+      //     try {
+      //       if (!this._canvasManager.isCreated()) {
+      //         return { success: false, error: 'No canvas created' }
+      //       }
+      //       return await createBarcode(
+      //         this._canvasManager.getProject(),
+      //         this._canvasManager.getCanvas(),
+      //         args
+      //       )
+      //     } catch (err) {
+      //       return { success: false, error: err.message }
+      //     }
+      //   },
+      // },
+
       // ==================== 组件化海报生成 ====================
 
       /**
@@ -1456,11 +1878,12 @@ module.exports = function (Plugin) {
           components: z.array(z.object({
             type: z.enum([
               'background', 'rectangle', 'circle', 'line', 'polygon',
-              'text', 'artText', 'image', 'svg', 'imageFrame',
+              'text', 'artText', 'richText', 'image', 'svg', 'imageFrame',
               'columns', 'grid', 'star', 'arrow', 'progressCircle', 'chip', 'chart', 'watermark', 'table',
               'card', 'badge', 'cta', 'feature', 'featureGrid', 'divider',
-              'avatar', 'progress', 'rating', 'quote', 'statCard', 
+              'avatar', 'progress', 'rating', 'quote', 'statCard',
               'tagCloud', 'stepper', 'timeline', 'listItem', 'notification',
+              'button', 'icon', 'qrcode', 'frame', 'bubble', 'ribbon', 'seal', 'highlightText', 'barcode',
             ]).describe('组件类型'),
           })).describe('组件配置数组'),
         }),

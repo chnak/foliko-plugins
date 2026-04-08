@@ -9,6 +9,7 @@ const addPolygon = require('./polygon')
 const addImage = require('./image')
 const addText = require('./text')
 const addArtText = require('./artText')
+const addRichText = require('./richText')
 const addBackground = require('./background')
 const { addSVG, exportSVG } = require('./svg')
 
@@ -20,6 +21,7 @@ module.exports = {
   addImage,
   addText,
   addArtText,
+  addRichText,
   addBackground,
   addSVG,
   exportSVG,

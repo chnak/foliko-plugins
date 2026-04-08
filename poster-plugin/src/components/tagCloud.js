@@ -6,21 +6,11 @@ const paper = require('paper')
 
 /**
  * 创建标签云
- * 
- * @param {Object} project - Paper.js 项目
- * @param {Object} canvas - 画布对象
- * @param {Object} args - 组件参数
- * @param {number} args.x - X坐标
- * @param {number} args.y - Y坐标
- * @param {Array} args.tags - 标签数组 [{text, color, bgColor}]
- * @param {number} args.fontSize - 字体大小
- * @param {number} args.padding - 标签内边距
- * @param {number} args.gap - 标签间距
- * @param {number} args.maxWidth - 最大宽度（自动换行）
  */
 function createTagCloud(project, canvas, args) {
   const {
-    x, y,
+    x = 0,
+    y = 0,
     tags = [],
     fontSize = 14,
     padding = 12,
@@ -29,12 +19,22 @@ function createTagCloud(project, canvas, args) {
   } = args
 
   const elements = []
+
+  // 确保 tags 是数组
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return { success: true, elements, height: 0, type: 'tagCloud' }
+  }
+
   let currentX = x
   let currentY = y
   let rowHeight = 0
 
   for (const tag of tags) {
-    const textWidth = tag.text.length * fontSize * 0.6
+    // 确保 tag.text 是字符串
+    const tagText = String(tag.text || '')
+    if (!tagText) continue
+
+    const textWidth = tagText.length * fontSize * 0.6
     const tagWidth = textWidth + padding * 2
     const tagHeight = fontSize + padding * 2
 
@@ -52,17 +52,23 @@ function createTagCloud(project, canvas, args) {
       radius: tagHeight / 2,
     })
     tagBg.fillColor = new paper.Color(tag.bgColor || '#e0e7ff')
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(tagBg)
+    }
     elements.push({ type: 'rectangle', id: tagBg.id })
 
     // 绘制标签文字
-    const tagText = new paper.PointText({
+    const tagTextEl = new paper.PointText({
       point: [currentX + tagWidth / 2, currentY + tagHeight / 2 + fontSize / 3],
-      content: tag.text,
+      content: tagText,
       fontSize: fontSize,
       fillColor: new paper.Color(tag.color || '#4338ca'),
       justification: 'center',
     })
-    elements.push({ type: 'text', id: tagText.id })
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(tagTextEl)
+    }
+    elements.push({ type: 'text', id: tagTextEl.id })
 
     currentX += tagWidth + gap
     rowHeight = Math.max(rowHeight, tagHeight)
@@ -71,7 +77,8 @@ function createTagCloud(project, canvas, args) {
   return {
     success: true,
     elements,
-    height: rowHeight,
+    height: currentY - y + rowHeight,
+    type: 'tagCloud',
   }
 }
 

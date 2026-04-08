@@ -1,10 +1,51 @@
 /**
  * 海报组件化生成器
- * 
+ *
  * 支持 JSON 配置驱动，一次调用生成完整海报
  */
 
 const paper = require('paper')
+
+// 导入新组件
+const createButton = require('./components/button')
+const createIcon = require('./components/icon')
+const createQRCode = require('./components/qrcode')
+const createFrame = require('./components/frame')
+const createBubble = require('./components/bubble')
+const createRibbon = require('./components/ribbon')
+const createSeal = require('./components/seal')
+const createHighlightText = require('./components/highlightText')
+const createBarcode = require('./components/barcode')
+const { loadImageAsRaster } = require('./utils/imageLoader')
+
+// 组件包装函数
+async function createButtonComponent(project, canvas, args) {
+  return await createButton(project, args)
+}
+async function createIconComponent(project, canvas, args) {
+  return await createIcon(project, args)
+}
+async function createQRCodeComponent(project, canvas, args) {
+  return await createQRCode(project, args)
+}
+async function createFrameComponent(project, canvas, args) {
+  return await createFrame(project, args)
+}
+async function createBubbleComponent(project, canvas, args) {
+  return await createBubble(project, args)
+}
+async function createRibbonComponent(project, canvas, args) {
+  return await createRibbon(project, args)
+}
+async function createSealComponent(project, canvas, args) {
+  return await createSeal(project, args)
+}
+async function createHighlightTextComponent(project, canvas, args) {
+  return await createHighlightText(project, args)
+}
+async function createBarcodeComponent(project, canvas, args) {
+  return await createBarcode(project, args)
+}
 
 /**
  * 辅助函数：将元素添加到活跃层
@@ -74,6 +115,16 @@ const COMPONENT_TYPES = {
   timeline: 'timeline',
   listItem: 'listItem',
   notification: 'notification',
+  // 设计组件
+  button: 'button',
+  icon: 'icon',
+  qrcode: 'qrcode',
+  frame: 'frame',
+  bubble: 'bubble',
+  ribbon: 'ribbon',
+  seal: 'seal',
+  highlightText: 'highlightText',
+  barcode: 'barcode',
 }
 
 /**
@@ -108,13 +159,13 @@ async function createFromConfig(project, canvas, config) {
 /**
  * 根据配置创建单个组件
  */
-function createComponent(project, canvas, config) {
+async function createComponent(project, canvas, config) {
   const { type, ...args } = config
 
   switch (type) {
     // 基础元素
     case 'background':
-      return createBackgroundElement(project, canvas, args)
+      return await createBackgroundElement(project, canvas, args)
     case 'rectangle':
       return createRectangleElement(project, args)
     case 'circle':
@@ -126,67 +177,87 @@ function createComponent(project, canvas, config) {
     case 'text':
       return createTextElement(project, args)
     case 'artText':
-      return createArtTextElement(project, args)
+      return await createArtTextElement(project, args)
     case 'image':
-      return createImageElement(project, args)
+      return await createImageElement(project, args)
     case 'svg':
-      return createSVGElement(project, args)
+      return await createSVGElement(project, args)
     case 'imageFrame':
-      return createImageFrameComponent(project, canvas, args)
+      return await createImageFrameComponent(project, canvas, args)
     case 'columns':
-      return createColumnsComponent(project, canvas, args)
+      return await createColumnsComponent(project, canvas, args)
     case 'grid':
-      return createGridComponent(project, canvas, args)
+      return await createGridComponent(project, canvas, args)
 
     // 装饰组件
     case 'star':
-      return createStarComponent(project, canvas, args)
+      return await createStarComponent(project, canvas, args)
     case 'arrow':
-      return createArrowComponent(project, canvas, args)
+      return await createArrowComponent(project, canvas, args)
     case 'progressCircle':
-      return createProgressCircleComponent(project, canvas, args)
+      return await createProgressCircleComponent(project, canvas, args)
     case 'chip':
-      return createChipComponent(project, canvas, args)
+      return await createChipComponent(project, canvas, args)
     case 'chart':
-      return createChartComponent(project, canvas, args)
+      return await createChartComponent(project, canvas, args)
     case 'watermark':
-      return createWatermarkComponent(project, canvas, args)
+      return await createWatermarkComponent(project, canvas, args)
     case 'table':
-      return createTableComponent(project, canvas, args)
+      return await createTableComponent(project, canvas, args)
 
     // 高级组件
     case 'card':
-      return createCardComponent(project, canvas, args)
+      return await createCardComponent(project, canvas, args)
     case 'badge':
-      return createBadgeComponent(project, canvas, args)
+      return await createBadgeComponent(project, canvas, args)
     case 'cta':
-      return createCTAComponent(project, canvas, args)
+      return await createCTAComponent(project, canvas, args)
     case 'feature':
-      return createFeatureComponent(project, canvas, args)
+      return await createFeatureComponent(project, canvas, args)
     case 'featureGrid':
-      return createFeatureGridComponent(project, canvas, args)
+      return await createFeatureGridComponent(project, canvas, args)
     case 'divider':
-      return createDividerComponent(project, canvas, args)
+      return await createDividerComponent(project, canvas, args)
     case 'avatar':
-      return createAvatarComponent(project, canvas, args)
+      return await createAvatarComponent(project, canvas, args)
     case 'progress':
-      return createProgressComponent(project, canvas, args)
+      return await createProgressComponent(project, canvas, args)
     case 'rating':
-      return createRatingComponent(project, canvas, args)
+      return await createRatingComponent(project, canvas, args)
     case 'quote':
-      return createQuoteComponent(project, canvas, args)
+      return await createQuoteComponent(project, canvas, args)
     case 'statCard':
-      return createStatCardComponent(project, canvas, args)
+      return await createStatCardComponent(project, canvas, args)
     case 'tagCloud':
-      return createTagCloudComponent(project, canvas, args)
+      return await createTagCloudComponent(project, canvas, args)
     case 'stepper':
-      return createStepperComponent(project, canvas, args)
+      return await createStepperComponent(project, canvas, args)
     case 'timeline':
-      return createTimelineComponent(project, canvas, args)
+      return await createTimelineComponent(project, canvas, args)
     case 'listItem':
-      return createListItemComponent(project, canvas, args)
+      return await createListItemComponent(project, canvas, args)
     case 'notification':
-      return createNotificationComponent(project, canvas, args)
+      return await createNotificationComponent(project, canvas, args)
+
+    // 设计组件
+    case 'button':
+      return await createButtonComponent(project, canvas, args)
+    case 'icon':
+      return await createIconComponent(project, canvas, args)
+    case 'qrcode':
+      return await createQRCodeComponent(project, canvas, args)
+    case 'frame':
+      return await createFrameComponent(project, canvas, args)
+    case 'bubble':
+      return await createBubbleComponent(project, canvas, args)
+    case 'ribbon':
+      return await createRibbonComponent(project, canvas, args)
+    case 'seal':
+      return await createSealComponent(project, canvas, args)
+    case 'highlightText':
+      return await createHighlightTextComponent(project, canvas, args)
+    case 'barcode':
+      return createBarcodeComponent(project, canvas, args)
 
     default:
       return { success: false, error: `Unknown component type: ${type}` }
@@ -195,8 +266,71 @@ function createComponent(project, canvas, config) {
 
 // ============= 基础元素创建函数 =============
 
-function createBackgroundElement(project, canvas, { color, gradient }) {
-  if (gradient) {
+function createBackgroundElement(project, canvas, { color, gradient, image }) {
+  if (image) {
+    const fs = require('fs')
+    const path = require('path')
+
+    // 确保 image 是字符串
+    if (typeof image !== 'string') {
+      return { success: false, error: 'Background image must be a string' }
+    }
+
+    // 本地文件路径
+    let absolutePath = image
+    if (!path.isAbsolute(absolutePath)) {
+      absolutePath = path.join(process.cwd(), absolutePath)
+    }
+
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`背景图片文件不存在: ${absolutePath}`)
+    }
+
+    const buffer = fs.readFileSync(absolutePath)
+    const ext = path.extname(absolutePath).toLowerCase()
+    const mimeTypes = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.bmp': 'image/bmp'
+    }
+    const mimeType = mimeTypes[ext] || 'image/png'
+    const imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`
+
+    const raster = new paper.Raster(imageUrl)
+
+    // 添加到项目活动层
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(raster)
+    }
+
+    raster.onLoad = () => {
+      // 计算缩放比例，使图片覆盖整个画布（cover 模式）
+      const canvasRatio = canvas.width / canvas.height
+      const imageRatio = raster.width / raster.height
+
+      let scaledWidth, scaledHeight, offsetX, offsetY
+
+      if (imageRatio > canvasRatio) {
+        // 图片更宽，以高度为基准缩放
+        scaledHeight = canvas.height
+        scaledWidth = raster.width * (canvas.height / raster.height)
+        offsetX = (canvas.width - scaledWidth) / 2
+        offsetY = 0
+      } else {
+        // 图片更高，以宽度为基准缩放
+        scaledWidth = canvas.width
+        scaledHeight = raster.height * (canvas.width / raster.width)
+        offsetX = 0
+        offsetY = (canvas.height - scaledHeight) / 2
+      }
+
+      raster.bounds = new paper.Rectangle(offsetX, offsetY, scaledWidth, scaledHeight)
+      raster.sendToBack()
+    }
+  } else if (gradient) {
     const paperColors = gradient.colors.map(c => new paper.Color(c))
     const { type, direction } = gradient
 
@@ -248,13 +382,23 @@ function createRectangleElement(project, { x, y, width, height, fill, stroke, st
   }
   if (opacity !== undefined) rect.opacity = opacity
 
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(rect)
+  }
+
   return { success: true, id: rect.id, type: 'rectangle' }
 }
 
-function createCircleElement(project, { cx, cy, rx, ry, fill, stroke, strokeWidth, opacity }) {
+function createCircleElement(project, { x, y, cx, cy, radius, rx, ry, fill, stroke, strokeWidth, opacity }) {
+  // 兼容 x, y, radius 或 cx, cy, rx, ry 格式
+  const centerX = cx || x
+  const centerY = cy || y
+  const radiusX = rx || radius || 30
+  const radiusY = ry || radius || 30
+
   const circle = new paper.Path.Ellipse({
-    center: [cx, cy],
-    radius: [rx, ry || rx],
+    center: [centerX, centerY],
+    radius: [radiusX, radiusY],
   })
 
   if (fill) circle.fillColor = new paper.Color(fill)
@@ -263,6 +407,10 @@ function createCircleElement(project, { cx, cy, rx, ry, fill, stroke, strokeWidt
     circle.strokeWidth = strokeWidth || 1
   }
   if (opacity !== undefined) circle.opacity = opacity
+
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(circle)
+  }
 
   return { success: true, id: circle.id, type: 'circle' }
 }
@@ -274,6 +422,10 @@ function createLineElement(project, { x1, y1, x2, y2, stroke, strokeWidth }) {
     strokeColor: new paper.Color(stroke || '#ffffff'),
     strokeWidth: strokeWidth || 2,
   })
+
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(line)
+  }
 
   return { success: true, id: line.id, type: 'line' }
 }
@@ -291,6 +443,10 @@ function createPolygonElement(project, { cx, cy, radius, sides, fill, stroke, st
     polygon.strokeWidth = strokeWidth || 1
   }
   if (opacity !== undefined) polygon.opacity = opacity
+
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(polygon)
+  }
 
   return { success: true, id: polygon.id, type: 'polygon' }
 }
@@ -311,6 +467,10 @@ function createTextElement(project, { text, x, y, fontSize, fontFamily, color, a
     textItem.shadowColor = new paper.Color(shadow.color)
     textItem.shadowBlur = shadow.blur || 5
     textItem.shadowOffset = new paper.Point(shadow.offsetX || 2, shadow.offsetY || 2)
+  }
+
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(textItem)
   }
 
   return { success: true, id: textItem.id, type: 'text' }
@@ -348,87 +508,68 @@ function createArtTextElement(project, { text, x, y, fontSize, fontFamily, gradi
     textItem.shadowOffset = new paper.Point(shadow.offsetX || 3, shadow.offsetY || 3)
   }
 
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(textItem)
+  }
+
   return { success: true, id: textItem.id, type: 'artText' }
 }
 
-function createImageElement(project, { src, x, y, width, height, opacity }) {
-  const fs = require('fs')
-  const path = require('path')
+async function createImageElement(project, { src, x = 0, y = 0, width, height, opacity = 1 }) {
+  try {
+    const { raster } = await loadImageAsRaster(project, src, { x, y, width, height }, opacity)
 
-  // 将图片转换为 Base64 data URL
-  let imageUrl = src
-
-  // 如果是本地文件，转换为 Base64
-  if (!src.startsWith('data:') && !src.startsWith('http')) {
-    let absolutePath = src
-    if (!path.isAbsolute(absolutePath)) {
-      absolutePath = path.join(process.cwd(), absolutePath)
+    return {
+      success: true,
+      id: raster.id,
+      type: 'image',
     }
-
-    if (!fs.existsSync(absolutePath)) {
-      return { success: false, error: `文件不存在: ${absolutePath}` }
-    }
-
-    const buffer = fs.readFileSync(absolutePath)
-    const ext = path.extname(absolutePath).toLowerCase()
-    const mimeTypes = {
-      '.png': 'image/png',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
-      '.bmp': 'image/bmp'
-    }
-    const mimeType = mimeTypes[ext] || 'image/png'
-    imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`
-  }
-
-  const raster = new paper.Raster(imageUrl)
-
-  raster.onLoad = () => {
-    if (width && height) {
-      raster.bounds = new paper.Rectangle(x, y, width, height)
-    } else if (width) {
-      const scale = width / raster.width
-      raster.bounds = new paper.Rectangle(x, y, width, raster.height * scale)
-    } else if (height) {
-      const scale = height / raster.height
-      raster.bounds = new paper.Rectangle(x, y, raster.width * scale, height)
-    } else {
-      raster.position = new paper.Point(x, y)
-    }
-
-    if (opacity !== undefined) raster.opacity = opacity
-  }
-
-  return {
-    success: true,
-    id: raster.id,
-    type: 'image',
-    width: raster.width,
-    height: raster.height,
+  } catch (err) {
+    return { success: false, error: `Failed to load image: ${err.message}` }
   }
 }
 
 const fs = require('fs')
 
-function createSVGElement(project, { src, x, y, width, height, opacity }) {
+async function createSVGElement(project, { src, x = 0, y = 0, width, height, opacity = 1 }) {
+  const fs = require('fs')
+  const path = require('path')
+
+  // 确保 src 是字符串
+  if (typeof src !== 'string') {
+    return { success: false, error: 'SVG source must be a string' }
+  }
+
   let svgContent = src
 
   // 如果是文件路径，读取文件内容
   if (!src.startsWith('<') && !src.startsWith('<?xml')) {
     try {
-      svgContent = fs.readFileSync(src, 'utf8')
+      let filePath = src
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.join(process.cwd(), filePath)
+      }
+      svgContent = fs.readFileSync(filePath, 'utf8')
     } catch (e) {
       return { success: false, error: `Failed to read SVG file: ${e.message}` }
     }
   }
 
-  // 导入 SVG
-  const svg = project.importSVG(svgContent)
+  // 导入 SVG 到指定项目
+  let svg
+  try {
+    svg = project.importSVG(svgContent)
+  } catch (e) {
+    return { success: false, error: `Failed to import SVG: ${e.message}` }
+  }
 
   if (!svg) {
     return { success: false, error: 'Failed to import SVG' }
+  }
+
+  // 确保 SVG 添加到活动层
+  if (project && project.activeLayer && svg.parent !== project.activeLayer) {
+    project.activeLayer.addChild(svg)
   }
 
   // 设置位置
@@ -436,12 +577,13 @@ function createSVGElement(project, { src, x, y, width, height, opacity }) {
 
   // 设置尺寸
   if (width && height) {
-    svg.bounds.width = width
-    svg.bounds.height = height
+    const scaleX = width / svg.bounds.width
+    const scaleY = height / svg.bounds.height
+    svg.scale(Math.min(scaleX, scaleY), svg.bounds.center)
   } else if (width) {
-    svg.scale(width / svg.bounds.width)
+    svg.scale(width / svg.bounds.width, svg.bounds.center)
   } else if (height) {
-    svg.scale(height / svg.bounds.height)
+    svg.scale(height / svg.bounds.height, svg.bounds.center)
   }
 
   // 设置透明度
@@ -543,9 +685,15 @@ function createCTAComponent(project, canvas, {
   x, y, text,
   background = '#007bff', color = '#ffffff',
   border, fontSize = 20, padding = 25, radius = 8, shadow,
+  width: customWidth,
 }) {
-  const textWidth = text.length * fontSize * 0.7
-  const btnWidth = textWidth + padding * 2
+  // 确保 text 是字符串
+  const textStr = String(text || '')
+  // 使用更准确的字符宽度估算：中文约1.0，英文约0.5
+  const chineseChars = (textStr.match(/[\u4e00-\u9fa5]/g) || []).length
+  const otherChars = textStr.length - chineseChars
+  const textWidth = chineseChars * fontSize * 1.0 + otherChars * fontSize * 0.5
+  const btnWidth = customWidth || (textWidth + padding * 2)
   const btnHeight = fontSize + padding * 2
   const btnX = x - btnWidth / 2
 
@@ -565,11 +713,17 @@ function createCTAComponent(project, canvas, {
 
   const buttonText = new paper.PointText({
     point: [x, y + btnHeight / 2 + fontSize / 3],
-    content: text,
+    content: textStr,
     fontSize: fontSize,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
+
+  // 添加到项目
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(button)
+    project.activeLayer.addChild(buttonText)
+  }
 
   return { success: true, elements: [{ type: 'rectangle', id: button.id }, { type: 'text', id: buttonText.id }], type: 'cta' }
 }
@@ -627,6 +781,13 @@ function createFeatureGridComponent(project, canvas, {
 }) {
   const elements = []
 
+  // 确保 items 是数组
+  if (!Array.isArray(items)) {
+    items = []
+  }
+
+  const rows = items.length > 0 ? Math.ceil(items.length / columns) : 0
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
     const col = i % columns
@@ -645,39 +806,56 @@ function createFeatureGridComponent(project, canvas, {
     bg.opacity = 0.8
     elements.push(bg)
 
+    // 添加到项目
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(bg)
+    }
+
     const padding = 15
     let offsetY = itemY + padding
 
     if (item.icon) {
-      elements.push(new paper.PointText({
+      const iconText = new paper.PointText({
         point: [itemX + padding, offsetY + 24],
         content: item.icon,
         fontSize: 28,
         fillColor: new paper.Color(item.iconColor || '#00ff88'),
         justification: 'left',
-      }))
+      })
+      elements.push(iconText)
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(iconText)
+      }
       offsetY += 35
     }
 
     if (item.title) {
-      elements.push(new paper.PointText({
+      const titleText = new paper.PointText({
         point: [itemX + padding, offsetY + 18],
         content: item.title,
         fontSize: 16,
         fillColor: new paper.Color(item.titleColor || '#ffffff'),
         justification: 'left',
-      }))
+      })
+      elements.push(titleText)
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(titleText)
+      }
       offsetY += 22
     }
 
     if (item.description) {
-      elements.push(new paper.PointText({
+      const descText = new paper.PointText({
         point: [itemX + padding, offsetY + 14],
         content: item.description,
         fontSize: 12,
         fillColor: new paper.Color(item.descColor || '#888888'),
         justification: 'left',
-      }))
+      })
+      elements.push(descText)
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(descText)
+      }
     }
   }
 
@@ -685,7 +863,9 @@ function createFeatureGridComponent(project, canvas, {
     success: true,
     elements,
     type: 'featureGrid',
-    rows: Math.ceil(items.length / columns),
+    width: columns * itemWidth + (columns - 1) * gap,
+    height: rows * itemHeight + Math.max(0, rows - 1) * gap,
+    rows,
     cols: columns,
   }
 }
@@ -917,12 +1097,22 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
 
 function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 14, padding = 12, gap = 10, maxWidth = 400 }) {
   const elements = []
+
+  // 确保 tags 是数组
+  if (!Array.isArray(tags) || tags.length === 0) {
+    return { success: true, elements: [], type: 'tagCloud', height: 0 }
+  }
+
   let currentX = x
   let currentY = y
   let rowHeight = 0
 
   for (const tag of tags) {
-    const textWidth = tag.text.length * fontSize * 0.6
+    // 确保 tag.text 是字符串
+    const tagText = String(tag.text || '')
+    if (!tagText) continue
+
+    const textWidth = tagText.length * fontSize * 0.6
     const tagWidth = textWidth + padding * 2
     const tagHeight = fontSize + padding * 2
 
@@ -940,13 +1130,22 @@ function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 
     tagBg.fillColor = new paper.Color(tag.bgColor || '#e0e7ff')
     elements.push({ type: 'rectangle', id: tagBg.id })
 
-    elements.push(new paper.PointText({
+    // 添加到项目
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(tagBg)
+    }
+
+    const tagTextEl = new paper.PointText({
       point: [currentX + tagWidth / 2, currentY + tagHeight / 2 + fontSize / 3],
-      content: tag.text,
+      content: tagText,
       fontSize: fontSize,
       fillColor: new paper.Color(tag.color || '#4338ca'),
       justification: 'center',
-    }))
+    })
+    elements.push(tagTextEl)
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(tagTextEl)
+    }
 
     currentX += tagWidth + gap
     rowHeight = Math.max(rowHeight, tagHeight)
@@ -1018,24 +1217,34 @@ function createStepperComponent(project, canvas, { x, y, width = 600, steps = []
 
 function createTimelineComponent(project, canvas, { x, y, width = 500, items = [], lineColor = '#e2e8f0', dotColor = '#6366f1', dotSize = 16, gap = 60 }) {
   const elements = []
+
+  // 确保 items 是数组
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: true, elements: [], type: 'timeline', height: 0 }
+  }
+
   const centerX = x + 80
   const contentX = x + 120
 
   if (items.length > 1) {
-    elements.push({
-      type: 'line',
-      id: new paper.Path.Line({
-        from: [centerX, y + dotSize / 2],
-        to: [centerX, y + (items.length - 1) * gap + dotSize / 2],
-        strokeColor: new paper.Color(lineColor),
-        strokeWidth: 2,
-      }).id
+    const mainLine = new paper.Path.Line({
+      from: [centerX, y + dotSize / 2],
+      to: [centerX, y + (items.length - 1) * gap + dotSize / 2],
+      strokeColor: new paper.Color(lineColor),
+      strokeWidth: 2,
     })
+    elements.push({ type: 'line', id: mainLine.id })
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(mainLine)
+    }
   }
 
   for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (!item) continue
+
     const itemY = y + i * gap
-    const isActive = items[i].active !== false
+    const isActive = item.active !== false
 
     const dot = new paper.Path.Circle({
       center: [centerX, itemY + dotSize / 2],
@@ -1043,41 +1252,64 @@ function createTimelineComponent(project, canvas, { x, y, width = 500, items = [
     })
     dot.fillColor = new paper.Color(isActive ? dotColor : lineColor)
     elements.push({ type: 'circle', id: dot.id })
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(dot)
+    }
 
-    if (items[i].date) {
-      elements.push(new paper.PointText({
+    if (item.date) {
+      const dateText = new paper.PointText({
         point: [x + 10, itemY + dotSize / 2 + 5],
-        content: items[i].date,
+        content: item.date,
         fontSize: 12,
         fillColor: new paper.Color('#94a3b8'),
         justification: 'left',
-      }))
+      })
+      elements.push(dateText)
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(dateText)
+      }
     }
 
-    elements.push(new paper.PointText({
+    const titleText = new paper.PointText({
       point: [contentX, itemY + dotSize / 2 + 5],
-      content: items[i].title || `Event ${i + 1}`,
+      content: item.title || `Event ${i + 1}`,
       fontSize: 16,
       fillColor: new paper.Color(isActive ? '#1e293b' : '#94a3b8'),
       justification: 'left',
-    }))
+    })
+    elements.push(titleText)
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(titleText)
+    }
 
-    if (items[i].description) {
-      elements.push(new paper.PointText({
+    if (item.description) {
+      const descText = new paper.PointText({
         point: [contentX, itemY + dotSize / 2 + 28],
-        content: items[i].description,
+        content: item.description,
         fontSize: 13,
         fillColor: new paper.Color('#64748b'),
         justification: 'left',
-      }))
+      })
+      elements.push(descText)
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(descText)
+      }
     }
   }
 
   return { success: true, elements, type: 'timeline', height: items.length * gap }
 }
 
-function createListItemComponent(project, canvas, { x, y, width = 400, icon = '→', title, description, badge, badgeColor = '#6366f1', iconColor = '#6366f1', background = '#ffffff', borderColor = '#e5e7eb', height = 60, radius = 8 }) {
+function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, icon = '→', title, description, badge, badgeColor = '#6366f1', iconColor = '#6366f1', background = '#ffffff', borderColor = '#e5e7eb', height = 60, radius = 8 }) {
   const elements = []
+
+  // 添加到项目活动层
+  const addToProject = (item) => {
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(item)
+    }
+    elements.push(item)
+  }
 
   const bg = new paper.Path.Rectangle({
     point: [x, y],
@@ -1087,32 +1319,35 @@ function createListItemComponent(project, canvas, { x, y, width = 400, icon = '�
   bg.fillColor = new paper.Color(background)
   bg.strokeColor = new paper.Color(borderColor)
   bg.strokeWidth = 1
-  elements.push({ type: 'rectangle', id: bg.id })
+  addToProject(bg)
 
-  elements.push(new paper.PointText({
+  const iconText = new paper.PointText({
     point: [x + 15, y + height / 2 + 6],
     content: icon,
     fontSize: 20,
     fillColor: new paper.Color(iconColor),
     justification: 'center',
-  }))
+  })
+  addToProject(iconText)
 
-  elements.push(new paper.PointText({
+  const titleText = new paper.PointText({
     point: [x + 50, y + height / 2 - 5],
     content: title || 'List Item',
     fontSize: 16,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
-  }))
+  })
+  addToProject(titleText)
 
   if (description) {
-    elements.push(new paper.PointText({
+    const descText = new paper.PointText({
       point: [x + 50, y + height / 2 + 15],
       content: description,
       fontSize: 12,
       fillColor: new paper.Color('#64748b'),
       justification: 'left',
-    }))
+    })
+    addToProject(descText)
   }
 
   if (badge) {
@@ -1120,22 +1355,22 @@ function createListItemComponent(project, canvas, { x, y, width = 400, icon = '�
     const badgeX = x + width - badgeWidth - 15
     const badgeY = y + (height - 24) / 2
 
-    elements.push({
-      type: 'rectangle',
-      id: new paper.Path.Rectangle({
-        point: [badgeX, badgeY],
-        size: [badgeWidth, 24],
-        radius: 12,
-      }).id
+    const badgeRect = new paper.Path.Rectangle({
+      point: [badgeX, badgeY],
+      size: [badgeWidth, 24],
+      radius: 12,
     })
+    badgeRect.fillColor = new paper.Color(badgeColor)
+    addToProject(badgeRect)
 
-    elements.push(new paper.PointText({
+    const badgeText = new paper.PointText({
       point: [badgeX + badgeWidth / 2, badgeY + 16],
       content: badge,
       fontSize: 12,
       fillColor: new paper.Color('#ffffff'),
       justification: 'center',
-    }))
+    })
+    addToProject(badgeText)
   }
 
   return { success: true, elements, type: 'listItem' }
@@ -1833,7 +2068,14 @@ function createTableComponent(project, canvas, {
   cellColor = '#333333', fontSize = 12, headerFontSize = 13, striped = true, stripeColor = '#fafafa'
 }) {
   const elements = []
-  if (columns.length === 0) return { success: true, elements, type: 'table' }
+  // 确保 columns 是数组
+  if (!Array.isArray(columns) || columns.length === 0) {
+    return { success: true, elements, type: 'table' }
+  }
+  // 确保 rows 是数组
+  if (!Array.isArray(rows)) {
+    rows = []
+  }
 
   const totalHeight = rowHeight * (rows.length + 1)
 

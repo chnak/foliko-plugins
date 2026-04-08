@@ -4,38 +4,53 @@
 
 const paper = require('paper')
 const fs = require('fs')
+const path = require('path')
 
 /**
  * 添加 SVG
- * 
- * @param {Object} project - Paper.js 项目
- * @param {Object} args - 组件参数
- * @param {string} args.src - SVG 文件路径或 SVG 字符串
- * @param {number} args.x - X坐标
- * @param {number} args.y - Y坐标
- * @param {number} args.width - 宽度
- * @param {number} args.height - 高度
- * @param {number} args.opacity - 透明度 0-1
  */
-function addSVG(project, args) {
-  const { src, x, y, width, height, opacity } = args
+async function addSVG(project, args) {
+  const { src, x = 0, y = 0, width, height, opacity = 1 } = args
+
+  // 确保 src 是字符串
+  if (typeof src !== 'string') {
+    return { success: false, error: 'SVG source must be a string' }
+  }
+
+  if (!src) {
+    return { success: false, error: 'SVG source is required' }
+  }
 
   let svgContent = src
 
   // 如果是文件路径，读取文件内容
   if (!src.startsWith('<') && !src.startsWith('<?xml')) {
     try {
-      svgContent = fs.readFileSync(src, 'utf8')
+      let filePath = src
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.join(process.cwd(), filePath)
+      }
+      svgContent = fs.readFileSync(filePath, 'utf8')
     } catch (e) {
       return { success: false, error: `Failed to read SVG file: ${e.message}` }
     }
   }
 
-  // 导入 SVG
-  const svg = paper.project.importSVG(svgContent)
-  
+  // 导入 SVG 到指定项目
+  let svg
+  try {
+    svg = project.importSVG(svgContent)
+  } catch (e) {
+    return { success: false, error: `Failed to import SVG: ${e.message}` }
+  }
+
   if (!svg) {
     return { success: false, error: 'Failed to import SVG' }
+  }
+
+  // 确保 SVG 添加到活动层
+  if (project && project.activeLayer && svg.parent !== project.activeLayer) {
+    project.activeLayer.addChild(svg)
   }
 
   // 设置位置
@@ -43,12 +58,13 @@ function addSVG(project, args) {
 
   // 设置尺寸
   if (width && height) {
-    svg.bounds.width = width
-    svg.bounds.height = height
+    const scaleX = width / svg.bounds.width
+    const scaleY = height / svg.bounds.height
+    svg.scale(Math.min(scaleX, scaleY), svg.bounds.center)
   } else if (width) {
-    svg.scale(width / svg.bounds.width)
+    svg.scale(width / svg.bounds.width, svg.bounds.center)
   } else if (height) {
-    svg.scale(height / svg.bounds.height)
+    svg.scale(height / svg.bounds.height, svg.bounds.center)
   }
 
   // 设置透明度

@@ -4,6 +4,8 @@
 
 const paper = require('paper')
 const PRESETS = require('./presets')
+const fs = require('fs')
+const path = require('path')
 
 /**
  * 画布管理器类
@@ -20,7 +22,7 @@ class CanvasManager {
   /**
    * 创建画布
    */
-  create({ preset, width, height, background }) {
+  async create({ preset, width, height, background }) {
     let w, h
 
     if (preset) {
@@ -49,12 +51,21 @@ class CanvasManager {
 
     // 添加背景
     if (background) {
-      const bg = new paper.Path.Rectangle({
-        point: [0, 0],
-        size: [w, h],
-        fillColor: background,
-      })
-      bg.sendToBack()
+      if (typeof background === 'string' && path.isAbsolute(background)) {
+        // 背景是绝对路径图片
+        await this._addBackgroundImage(background, w, h)
+      } else if (typeof background === 'object' && background.image) {
+        // 背景是对象形式 { image: 'path' }
+        await this._addBackgroundImage(background.image, w, h)
+      } else {
+        // 背景是颜色
+        const bg = new paper.Path.Rectangle({
+          point: [0, 0],
+          size: [w, h],
+          fillColor: background,
+        })
+        bg.sendToBack()
+      }
     }
 
     return {
@@ -63,6 +74,58 @@ class CanvasManager {
       preset: preset || 'custom',
       background: background || null,
     }
+  }
+
+  /**
+   * 添加背景图片
+   */
+  async _addBackgroundImage(imageSrc, w, h) {
+    // 本地文件路径
+    let absolutePath = imageSrc
+    if (!path.isAbsolute(absolutePath)) {
+      absolutePath = path.join(process.cwd(), absolutePath)
+    }
+
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`背景图片文件不存在: ${absolutePath}`)
+    }
+
+    // 使用 loadImage 获取图片数据
+    const { loadImage } = require('canvas')
+    const imageData = await loadImage(absolutePath)
+
+    // 创建 Paper.js Raster
+    const raster = new paper.Raster(imageData)
+
+    // 等待 raster 加载完成
+    await new Promise((resolve) => {
+      if (raster.loaded) {
+        resolve()
+      } else {
+        raster.onLoad = resolve
+      }
+    })
+
+    // 计算 cover 模式缩放
+    const canvasRatio = w / h
+    const imageRatio = raster.width / raster.height
+
+    let scaledWidth, scaledHeight, offsetX, offsetY
+
+    if (imageRatio > canvasRatio) {
+      scaledHeight = h
+      scaledWidth = raster.width * (h / raster.height)
+      offsetX = (w - scaledWidth) / 2
+      offsetY = 0
+    } else {
+      scaledWidth = w
+      scaledHeight = raster.height * (w / raster.width)
+      offsetX = 0
+      offsetY = (h - scaledHeight) / 2
+    }
+
+    raster.bounds = new paper.Rectangle(offsetX, offsetY, scaledWidth, scaledHeight)
+    raster.sendToBack()
   }
 
   /**

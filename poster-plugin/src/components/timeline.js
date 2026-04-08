@@ -6,18 +6,6 @@ const paper = require('paper')
 
 /**
  * 创建时间线
- * 
- * @param {Object} project - Paper.js 项目
- * @param {Object} canvas - 画布对象
- * @param {Object} args - 组件参数
- * @param {number} args.x - X坐标
- * @param {number} args.y - Y坐标
- * @param {number} args.width - 总宽度
- * @param {Array} args.items - 时间线项目 [{date, title, description}]
- * @param {string} args.lineColor - 线条颜色
- * @param {string} args.dotColor - 点颜色
- * @param {string} args.activeColor - 激活颜色
- * @param {number} args.dotSize - 点大小
  */
 function createTimeline(project, canvas, args) {
   const {
@@ -32,6 +20,12 @@ function createTimeline(project, canvas, args) {
   } = args
 
   const elements = []
+
+  // 确保 items 是数组
+  if (!Array.isArray(items) || items.length === 0) {
+    return { success: true, elements, height: 0, type: 'timeline' }
+  }
+
   const centerX = x + 80
   const contentX = x + 120
 
@@ -43,12 +37,17 @@ function createTimeline(project, canvas, args) {
       strokeColor: new paper.Color(lineColor),
       strokeWidth: 2,
     })
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(mainLine)
+    }
     elements.push({ type: 'line', id: mainLine.id })
   }
 
   // 绘制每个项目
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
+    if (!item) continue
+
     const itemY = y + i * gap
     const isActive = item.active !== false
 
@@ -58,6 +57,9 @@ function createTimeline(project, canvas, args) {
       radius: dotSize / 2,
     })
     dot.fillColor = new paper.Color(isActive ? dotColor : lineColor)
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(dot)
+    }
     elements.push({ type: 'circle', id: dot.id })
 
     // 绘制日期
@@ -69,6 +71,9 @@ function createTimeline(project, canvas, args) {
         fillColor: new paper.Color('#94a3b8'),
         justification: 'left',
       })
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(dateText)
+      }
       elements.push({ type: 'text', id: dateText.id })
     }
 
@@ -80,6 +85,9 @@ function createTimeline(project, canvas, args) {
       fillColor: new paper.Color(isActive ? '#1e293b' : '#94a3b8'),
       justification: 'left',
     })
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(titleText)
+    }
     elements.push({ type: 'text', id: titleText.id })
 
     // 绘制描述
@@ -91,6 +99,9 @@ function createTimeline(project, canvas, args) {
         fillColor: new paper.Color('#64748b'),
         justification: 'left',
       })
+      if (project && project.activeLayer) {
+        project.activeLayer.addChild(descText)
+      }
       elements.push({ type: 'text', id: descText.id })
     }
   }
@@ -99,6 +110,7 @@ function createTimeline(project, canvas, args) {
     success: true,
     elements,
     height: items.length * gap,
+    type: 'timeline',
   }
 }
 
