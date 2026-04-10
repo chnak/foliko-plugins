@@ -330,23 +330,27 @@ module.exports = function (Plugin) {
             ? await page.evaluate(() => document.body ? document.body.innerHTML : '')
             : await page.content();
 
-          let content = html;
+          // 保存到临时文件
+          const tmpDir = require('os').tmpdir();
+          const filename = `puppeteer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.html`;
+          const filePath = path.join(tmpDir, filename);
+          fs.writeFileSync(filePath, html, 'utf-8');
+
+          let content;
           let isMarkdown = false;
 
           // 如果需要转换为 Markdown（默认为 true）
-          const shouldConvertToMarkdown = args.toMarkdown !== false;
-          if (shouldConvertToMarkdown) {
+          if (args.toMarkdown !== false) {
             content = this._htmlToMarkdown(html);
             isMarkdown = true;
           }
 
           return {
             success: true,
-            html: isMarkdown ? undefined : html,
+            filePath: filePath,
             markdown: isMarkdown ? content : undefined,
-            content: content,
-            length: content.length,
-            isMarkdown: isMarkdown,
+            content: isMarkdown ? content : `[HTML已保存到文件: ${filePath}]`,
+            length: html.length,
             url: page.url()
           };
         }
