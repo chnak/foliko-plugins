@@ -16,6 +16,7 @@ const createRibbon = require('./components/ribbon')
 const createSeal = require('./components/seal')
 const createHighlightText = require('./components/highlightText')
 const createBarcode = require('./components/barcode')
+const createQuote = require('./components/quote')
 const { loadImageAsRaster } = require('./utils/imageLoader')
 
 // 组件包装函数
@@ -45,6 +46,9 @@ async function createHighlightTextComponent(project, canvas, args) {
 }
 async function createBarcodeComponent(project, canvas, args) {
   return await createBarcode(project, args)
+}
+async function createQuoteComponentWrapper(project, canvas, args) {
+  return await createQuote(project, canvas, args)
 }
 
 /**
@@ -178,6 +182,8 @@ async function createComponent(project, canvas, config) {
       return createTextElement(project, args)
     case 'artText':
       return await createArtTextElement(project, args)
+    case 'richText':
+      return await createRichTextElement(project, args)
     case 'image':
       return await createImageElement(project, args)
     case 'svg':
@@ -225,7 +231,7 @@ async function createComponent(project, canvas, config) {
     case 'rating':
       return await createRatingComponent(project, canvas, args)
     case 'quote':
-      return await createQuoteComponent(project, canvas, args)
+      return await createQuoteComponentWrapper(project, canvas, args)
     case 'statCard':
       return await createStatCardComponent(project, canvas, args)
     case 'tagCloud':
@@ -454,13 +460,32 @@ function createPolygonElement(project, { cx, cy, radius, sides, fill, stroke, st
 function createTextElement(project, { text, x, y, fontSize, fontFamily, color, align, shadow }) {
   const { validateFont, getDefaultFont } = require('./fonts')
 
+  const fontSizeVal = fontSize || 48
+  const textColor = color || '#ffffff'
+  const alignment = align || 'left'
+
+  // 计算文字宽度用于居中/右对齐
+  let offsetX = 0
+  if (alignment === 'center' || alignment === 'right') {
+    // 估算文字宽度：中文约 1.0 倍字体大小，英文约 0.5 倍
+    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
+    const otherChars = text.length - chineseChars
+    const textWidth = chineseChars * fontSizeVal * 1.0 + otherChars * fontSizeVal * 0.5
+
+    if (alignment === 'center') {
+      offsetX = -textWidth / 2
+    } else if (alignment === 'right') {
+      offsetX = -textWidth
+    }
+  }
+
   const textItem = new paper.PointText({
-    point: [x, y],
+    point: [x + offsetX, y],
     content: text,
-    fontSize: fontSize || 48,
+    fontSize: fontSizeVal,
     fontFamily: validateFont(fontFamily) || getDefaultFont(),
-    fillColor: new paper.Color(color || '#ffffff'),
-    justification: align || 'left',
+    fillColor: new paper.Color(textColor),
+    justification: alignment,
   })
 
   if (shadow) {
@@ -526,6 +551,132 @@ async function createImageElement(project, { src, x = 0, y = 0, width, height, o
     }
   } catch (err) {
     return { success: false, error: `Failed to load image: ${err.message}` }
+  }
+}
+
+/**
+ * 创建富文本元素（支持多行文本和自动换行）
+ */
+function createRichTextElement(project, {
+  x = 0,
+  y = 0,
+  width,
+  text = '',
+  fontSize = 48,
+  fontFamily = 'sans-serif',
+  color = '#ffffff',
+  align = 'left',
+  lineHeight = fontSize * 1.4,
+  letterSpacing = 0,
+  opacity = 1,
+  rotation = 0,
+  shadow = null,
+}) {
+  const { validateFont, getDefaultFont } = require('./fonts')
+  const validatedFont = validateFont(fontFamily) || getDefaultFont()
+
+  // 估算字符宽度（中文约等于 fontSize，英文约等于 fontSize * 0.5）
+  const getCharWidth = (char) => {
+    return /[\u4e00-\u9fa5]/.test(char) ? fontSize : fontSize * 0.5
+  }
+
+  // 计算文本宽度
+  const calcTextWidth = (str) => {
+    let width = 0
+    for (const char of str) {
+      width += getCharWidth(char)
+    }
+    return width + (str.length - 1) * letterSpacing
+  }
+
+  // 处理自动换行
+  const lines = []
+  if (width) {
+    const paragraphs = text.split('\n')
+    for (const paragraph of paragraphs) {
+      if (!paragraph) {
+        lines.push('')
+        continue
+      }
+      let currentLine = ''
+      let currentWidth = 0
+      for (const char of paragraph) {
+        const charWidth = getCharWidth(char) + letterSpacing
+        if (currentWidth + charWidth > width && currentLine) {
+          lines.push(currentLine)
+          currentLine = char
+          currentWidth = charWidth
+        } else {
+          currentLine += char
+          currentWidth += charWidth
+        }
+      }
+      if (currentLine) {
+        lines.push(currentLine)
+      }
+    }
+  } else {
+    lines.push(text)
+  }
+
+  // 创建文本元素组
+  const group = new paper.Group()
+  const textItems = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const lineY = y + i * lineHeight
+
+    // 计算对齐偏移
+    let offsetX = 0
+    if (align === 'center' && width) {
+      offsetX = (width - calcTextWidth(line)) / 2
+    } else if (align === 'right' && width) {
+      offsetX = width - calcTextWidth(line)
+    }
+
+    const textItem = new paper.PointText({
+      point: [x + offsetX, lineY + fontSize],
+      content: line,
+      fontSize: fontSize,
+      fontFamily: validatedFont,
+      fillColor: new paper.Color(color),
+      justification: align,
+    })
+
+    if (letterSpacing !== 0) {
+      textItem.letterSpacing = letterSpacing
+    }
+
+    if (opacity !== 1) {
+      textItem.opacity = opacity
+    }
+
+    if (rotation !== 0) {
+      textItem.rotate(rotation, new paper.Point(x, y))
+    }
+
+    if (shadow) {
+      textItem.shadowColor = new paper.Color(shadow.color || 'rgba(0,0,0,0.5)')
+      textItem.shadowBlur = shadow.blur || 5
+      textItem.shadowOffset = new paper.Point(shadow.offsetX || 2, shadow.offsetY || 2)
+    }
+
+    textItems.push(textItem)
+    group.addChild(textItem)
+  }
+
+  // 添加到项目
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(group)
+  }
+
+  return {
+    success: true,
+    id: group.id,
+    type: 'richText',
+    lines: lines.length,
+    height: lines.length * lineHeight,
   }
 }
 
@@ -1777,15 +1928,15 @@ function createGridComponent(project, canvas, {
  * 创建星形组件
  */
 function createStarComponent(project, canvas, {
-  cx, cy, points = 5, innerRadius: providedInnerRadius, outerRadius,
+  cx, cy, points = 5, innerRadius, outerRadius,
   fill, stroke, strokeWidth = 1, opacity = 1, rotation = 0
 }) {
-  const innerRadius = providedInnerRadius || outerRadius * 0.4
+  const actualInnerRadius = innerRadius || outerRadius * 0.4
   const path = new paper.Path()
   const angleStep = Math.PI / points
 
   for (let i = 0; i < points * 2; i++) {
-    const radius = i % 2 === 0 ? outerRadius : innerRadius
+    const radius = i % 2 === 0 ? outerRadius : actualInnerRadius
     const angle = i * angleStep - Math.PI / 2 + (rotation * Math.PI / 180)
     const x = cx + radius * Math.cos(angle)
     const y = cy + radius * Math.sin(angle)

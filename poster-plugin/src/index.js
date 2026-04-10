@@ -1569,7 +1569,6 @@ module.exports = function (Plugin) {
             }
             return await createButton(
               this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
               args
             )
           } catch (err) {

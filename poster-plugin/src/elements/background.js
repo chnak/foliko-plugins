@@ -46,6 +46,7 @@ async function addBackground(project, canvas, args) {
     const { type, colors, direction } = gradient
     const paperColors = colors.map(c => new paper.Color(c))
 
+    let gradientConfig
     if (type === 'linear') {
       const angle = (direction || 45) * Math.PI / 180
       const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2)
@@ -57,23 +58,37 @@ async function addBackground(project, canvas, args) {
         canvas.width / 2 + Math.cos(angle) * diagonal / 2,
         canvas.height / 2 + Math.sin(angle) * diagonal / 2
       )
-      project.activeLayer.fillColor = new paper.Color({
+      gradientConfig = {
         gradient: { stops: paperColors },
         origin: start,
         destination: stop,
-      })
+      }
     } else {
       // radial
       const center = new paper.Point(canvas.width / 2, canvas.height / 2)
       const radius = Math.max(canvas.width, canvas.height) / 2
-      project.activeLayer.fillColor = new paper.Color({
+      gradientConfig = {
         gradient: { stops: paperColors },
         origin: center,
         destination: center.add(new paper.Point(radius, 0)),
-      })
+      }
     }
+
+    // 创建矩形背景元素（确保导出时能正确渲染渐变）
+    const bg = new paper.Path.Rectangle({
+      point: [0, 0],
+      size: [canvas.width, canvas.height],
+      fillColor: new paper.Color(gradientConfig),
+    })
+    bg.sendToBack()
   } else if (color) {
-    project.activeLayer.fillColor = new paper.Color(color)
+    // 创建矩形背景元素（确保导出时能正确渲染）
+    const bg = new paper.Path.Rectangle({
+      point: [0, 0],
+      size: [canvas.width, canvas.height],
+      fillColor: new paper.Color(color),
+    })
+    bg.sendToBack()
   } else {
     throw new Error('Must provide color, gradient, or image')
   }

@@ -1,5 +1,6 @@
 /**
  * 富文本组件 - 支持旋转和多种文本样式
+ * 支持自动换行
  */
 
 const paper = require('paper')
@@ -38,6 +39,65 @@ function getFontForText(requestedFont, text) {
     if (emojiFont) return emojiFont
   }
   return baseFont
+}
+
+/**
+ * 手动实现文本自动换行
+ * @param {string} text - 原始文本
+ * @param {number} maxWidth - 最大宽度
+ * @param {number} fontSize - 字体大小
+ * @param {string} font - 字体名称
+ * @param {number} letterSpacing - 字母间距
+ * @returns {string[]} 换行后的行数组
+ */
+function wrapText(text, maxWidth, fontSize, font, letterSpacing = 0) {
+  if (!maxWidth || maxWidth <= 0) return [text]
+  
+  // 创建临时文本用于测量宽度
+  const tempText = new paper.PointText({
+    fontSize,
+    fontFamily: font,
+  })
+  if (letterSpacing !== 0) {
+    tempText.letterSpacing = letterSpacing
+  }
+  
+  const lines = []
+  const paragraphs = text.split('\n')
+  
+  for (let p = 0; p < paragraphs.length; p++) {
+    let currentLine = ''
+    const paragraph = paragraphs[p]
+    
+    // 按字符分割（处理中英文混合）
+    const chars = []
+    // 使用简单的字符分割方法
+    for (let i = 0; i < paragraph.length; i++) {
+      chars.push(paragraph[i])
+    }
+    
+    for (let i = 0; i < chars.length; i++) {
+      const char = chars[i]
+      const testLine = currentLine + char
+      
+      tempText.content = testLine
+      const testWidth = tempText.bounds.width
+      
+      if (testWidth > maxWidth && currentLine.length > 0) {
+        lines.push(currentLine)
+        currentLine = char
+      } else {
+        currentLine = testLine
+      }
+    }
+    
+    if (currentLine.length > 0) {
+      lines.push(currentLine)
+    }
+  }
+  
+  tempText.remove()
+  return lines
 }
 
 /**
@@ -103,46 +163,77 @@ function addRichText(project, args) {
   const effectiveFontWeight = bold ? 'bold' : (fontWeight || 'normal')
   const effectiveFontStyle = italic ? 'italic' : (fontStyle || 'normal')
 
-  // 创建文本项
-  const textItem = new paper.PointText({
-    point: [x, y + fontSize],
-    content: text,
-    fontSize,
-    fontFamily: font,
-    fontWeight: effectiveFontWeight,
-    fontStyle: effectiveFontStyle,
-    fillColor: new paper.Color(color),
-    justification: align,
+  // 计算实际行高
+  const actualLineHeight = lineHeight || (fontSize + lineSpacing)
+  
+  // 如果需要换行且指定了宽度
+  let textLines = [text]
+  if (wrap && width && width > 0) {
+    textLines = wrapText(text, width - 10, fontSize, font, letterSpacing)
+  }
+
+  // 计算总高度
+  const totalHeight = textLines.length * actualLineHeight
+
+  // 创建组来容纳所有文本行
+  const group = new paper.Group()
+
+  // 逐行创建文本
+  textLines.forEach((lineText, index) => {
+    const lineY = y + fontSize + index * actualLineHeight
+    
+    const textItem = new paper.PointText({
+      point: [x, lineY],
+      content: lineText,
+      fontSize,
+      fontFamily: font,
+      fontWeight: effectiveFontWeight,
+      fontStyle: effectiveFontStyle,
+      fillColor: new paper.Color(color),
+      justification: align,
+    })
+
+    // 字母间距
+    if (letterSpacing !== 0) {
+      textItem.letterSpacing = letterSpacing
+    }
+
+    // 下划线和删除线
+    if (underline || strikethrough) {
+      textItem.decorations = []
+      if (underline) textItem.decorations.push('underline')
+      if (strikethrough) textItem.decorations.push('strikethrough')
+    }
+
+    // 描边
+    if (strokeColor) {
+      textItem.strokeColor = new paper.Color(strokeColor)
+      textItem.strokeWidth = strokeWidth
+    }
+
+    // 阴影
+    if (shadow) {
+      textItem.shadowColor = new paper.Color(shadow.color || '#000000')
+      textItem.shadowBlur = shadow.blur || 5
+      textItem.shadowOffset = new paper.Point(shadow.offsetX || 2, shadow.offsetY || 2)
+    }
+
+    // 透明度
+    if (opacity !== 1) {
+      textItem.opacity = opacity
+    }
+
+    group.addChild(textItem)
   })
 
-  // 字母间距
-  if (letterSpacing !== 0) {
-    textItem.letterSpacing = letterSpacing
-  }
-
-  // 行高
-  if (lineHeight) {
-    textItem.leading = lineHeight
-  } else if (lineSpacing !== 0) {
-    textItem.leading = fontSize + lineSpacing
-  }
-
-  // 下划线和删除线 - 使用字符样式
-  if (underline || strikethrough) {
-    textItem.decorations = []
-    if (underline) textItem.decorations.push('underline')
-    if (strikethrough) textItem.decorations.push('strikethrough')
-  }
-
-  // 渐变填充
+  // 渐变填充（应用到所有行）
   if (gradient && gradient.colors && gradient.colors.length > 0) {
     const colors = gradient.colors.map(c => new paper.Color(c))
-    const bounds = textItem.bounds
+    const bounds = group.bounds
     if (gradient.direction !== undefined) {
-      // 自定义方向
       const angle = gradient.direction * Math.PI / 180
       const diagonal = Math.sqrt(bounds.width ** 2 + bounds.height ** 2)
-      textItem.fillColor = new paper.Color({
+      group.fillColor = new paper.Color({
         gradient: { stops: colors },
         origin: new paper.Point(
           bounds.center.x - Math.cos(angle) * diagonal / 2,
@@ -154,13 +245,18 @@ function addRichText(project, args) {
         ),
       })
     } else {
-      // 水平渐变
-      textItem.fillColor = new paper.Color({
+      group.fillColor = new paper.Color({
         gradient: { stops: colors },
         origin: bounds.topLeft,
         destination: bounds.topRight,
       })
     }
+    // 清除子元素的单独颜色
+    group.children.forEach(child => {
+      if (child.fillColor) {
+        child.fillColor = null
+      }
+    })
   }
 
   // 背景色 - 创建背景矩形
@@ -168,61 +264,42 @@ function addRichText(project, args) {
   if (backgroundColor) {
     const padding = 10
     bgRect = new paper.Path.Rectangle({
-      point: [textItem.bounds.left - padding, textItem.bounds.top - padding],
-      size: [textItem.bounds.width + padding * 2, textItem.bounds.height + padding * 2],
+      point: [group.bounds.left - padding, group.bounds.top - padding],
+      size: [group.bounds.width + padding * 2, group.bounds.height + padding * 2],
       fillColor: new paper.Color(backgroundColor),
       radius: 4,
     })
     bgRect.sendToBack()
   }
 
-  // 描边
-  if (strokeColor) {
-    textItem.strokeColor = new paper.Color(strokeColor)
-    textItem.strokeWidth = strokeWidth
-  }
-
-  // 阴影
-  if (shadow) {
-    textItem.shadowColor = new paper.Color(shadow.color || '#000000')
-    textItem.shadowBlur = shadow.blur || 5
-    textItem.shadowOffset = new paper.Point(shadow.offsetX || 2, shadow.offsetY || 2)
-  }
-
-  // 透明度
-  if (opacity !== 1) {
-    textItem.opacity = opacity
-    if (bgRect) bgRect.opacity = opacity
-  }
-
   // 旋转
   if (rotation !== 0) {
-    textItem.rotate(rotation, new paper.Point(x, y + fontSize))
+    group.rotate(rotation, new paper.Point(x, y + fontSize))
     if (bgRect) bgRect.rotate(rotation, bgRect.bounds.center)
   }
 
   // 缩放
   if (scale !== undefined) {
     if (typeof scale === 'number') {
-      textItem.scale(scale, scale, new paper.Point(x, y + fontSize))
+      group.scale(scale, scale, new paper.Point(x, y + fontSize))
       if (bgRect) bgRect.scale(scale, scale, bgRect.bounds.center)
     } else if (typeof scale === 'object' && (scale.x !== undefined || scale.y !== undefined)) {
       const sx = scale.x || 1
       const sy = scale.y || sx
-      textItem.scale(sx, sy, new paper.Point(x, y + fontSize))
+      group.scale(sx, sy, new paper.Point(x, y + fontSize))
       if (bgRect) bgRect.scale(sx, sy, bgRect.bounds.center)
     }
   }
 
   return {
     success: true,
-    id: textItem.id,
+    id: group.id,
     type: 'richText',
     bounds: {
-      x: textItem.bounds.x,
-      y: textItem.bounds.y,
-      width: textItem.bounds.width,
-      height: textItem.bounds.height,
+      x: group.bounds.x,
+      y: group.bounds.y,
+      width: group.bounds.width,
+      height: group.bounds.height,
     }
   }
 }

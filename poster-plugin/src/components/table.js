@@ -125,7 +125,7 @@ function createTable(project, canvas, params) {
     // 行分隔线
     const rowLine = new paper.Path.Line({
       from: [x, rowY],
-      to: [x + width, rowY]
+      to: [x + tableWidth, rowY]
     })
     rowLine.strokeColor = new paper.Color(borderColor)
     rowLine.strokeWidth = 0.5

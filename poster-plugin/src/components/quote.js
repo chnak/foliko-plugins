@@ -1,8 +1,54 @@
 /**
- * 引用块组件
+ * 引用块组件 - 支持自动换行
  */
 
 const paper = require('paper')
+
+/**
+ * 手动实现文本自动换行
+ */
+function wrapText(text, maxWidth, fontSize, font) {
+  if (!maxWidth || maxWidth <= 0) return [text]
+  
+  const tempText = new paper.PointText({
+    fontSize,
+    fontFamily: font,
+  })
+  
+  const lines = []
+  const paragraphs = text.split('\n')
+  
+  for (let p = 0; p < paragraphs.length; p++) {
+    let currentLine = ''
+    const paragraph = paragraphs[p]
+    let i = 0
+    
+    while (i < paragraph.length) {
+      // 尝试获取下一个字符
+      let char = paragraph[i]
+      let testLine = currentLine + char
+      
+      tempText.content = testLine
+      let testWidth = tempText.bounds.width
+      
+      // 如果加上下一个字符超过宽度
+      if (testWidth > maxWidth && currentLine.length > 0) {
+        lines.push(currentLine)
+        currentLine = char
+      } else {
+        currentLine = testLine
+      }
+      i++
+    }
+    
+    if (currentLine.length > 0) {
+      lines.push(currentLine)
+    }
+  }
+  
+  tempText.remove()
+  return lines
+}
 
 /**
  * 创建引用块
@@ -38,14 +84,28 @@ function createQuote(project, canvas, args) {
     textColor = '#1e293b',
     authorColor = '#64748b',
     fontSize = 18,
+    fontFamily = 'Noto Serif SC, STSong, SimSun',
   } = args
 
   const elements = []
+  
+  // 计算文本换行
+  const textPadding = padding + 30 // 左边距 + 引号宽度
+  const maxTextWidth = width - textPadding - padding
+  const textLines = wrapText(text, maxTextWidth, fontSize, fontFamily)
+  const lineHeight = fontSize * 1.5
+  const textBlockHeight = textLines.length * lineHeight
+  
+  // 计算背景高度
+  const authorHeight = author ? fontSize * 1.5 : 0
+  const totalHeight = padding * 2 + textBlockHeight + authorHeight
+  const minHeight = 80
+  const finalHeight = Math.max(totalHeight, minHeight)
 
   // 绘制背景
   const bg = new paper.Path.Rectangle({
     point: [x, y],
-    size: [width, author ? 80 + fontSize * 2 : 40 + fontSize * 1.5],
+    size: [width, finalHeight],
     radius: radius,
   })
   bg.fillColor = new paper.Color(background)
@@ -54,7 +114,7 @@ function createQuote(project, canvas, args) {
   // 绘制左边框
   const border = new paper.Path.Rectangle({
     point: [x, y],
-    size: [borderWidth, author ? 80 + fontSize * 2 : 40 + fontSize * 1.5],
+    size: [borderWidth, finalHeight],
   })
   border.fillColor = new paper.Color(borderColor)
   elements.push({ type: 'rectangle', id: border.id })
@@ -64,27 +124,34 @@ function createQuote(project, canvas, args) {
     point: [x + padding + 10, y + padding + fontSize],
     content: '"',
     fontSize: fontSize * 2,
+    fontFamily: fontFamily,
     fillColor: new paper.Color(borderColor),
     justification: 'left',
   })
   elements.push({ type: 'text', id: quoteMark.id })
 
-  // 绘制引用文字
-  const quoteText = new paper.PointText({
-    point: [x + padding + 30, y + padding + fontSize * 1.5],
-    content: text,
-    fontSize: fontSize,
-    fillColor: new paper.Color(textColor),
-    justification: 'left',
+  // 绘制引用文字（多行）
+  textLines.forEach((line, index) => {
+    const lineY = y + padding + fontSize + index * lineHeight
+    const quoteText = new paper.PointText({
+      point: [x + padding + 30, lineY],
+      content: line,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      fillColor: new paper.Color(textColor),
+      justification: 'left',
+    })
+    elements.push({ type: 'text', id: quoteText.id })
   })
-  elements.push({ type: 'text', id: quoteText.id })
 
   // 绘制作者
   if (author) {
+    const authorY = y + padding + textBlockHeight + fontSize * 1.3
     const authorText = new paper.PointText({
-      point: [x + padding, y + padding + fontSize * 2.5 + 10],
+      point: [x + padding, authorY],
       content: `— ${author}`,
-      fontSize: fontSize * 0.8,
+      fontSize: fontSize * 0.85,
+      fontFamily: fontFamily,
       fillColor: new paper.Color(authorColor),
       justification: 'left',
     })

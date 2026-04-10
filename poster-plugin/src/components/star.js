@@ -15,7 +15,7 @@ function createStar(project, canvas, params) {
     cx,
     cy,
     points = 5,
-    innerRadius: providedInnerRadius,
+    innerRadius,
     outerRadius,
     fill,
     stroke,
@@ -25,14 +25,14 @@ function createStar(project, canvas, params) {
   } = params
 
   // 计算内半径
-  const innerRadius = providedInnerRadius || outerRadius * 0.4
+  const actualInnerRadius = innerRadius || outerRadius * 0.4
 
   // 创建星形路径
   const path = new paper.Path()
   const angleStep = Math.PI / points
 
   for (let i = 0; i < points * 2; i++) {
-    const radius = i % 2 === 0 ? outerRadius : innerRadius
+    const radius = i % 2 === 0 ? outerRadius : actualInnerRadius
     const angle = i * angleStep - Math.PI / 2 + (rotation * Math.PI / 180)
     const x = cx + radius * Math.cos(angle)
     const y = cy + radius * Math.sin(angle)
