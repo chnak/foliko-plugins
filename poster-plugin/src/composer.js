@@ -458,7 +458,7 @@ function createPolygonElement(project, { cx, cy, radius, sides, fill, stroke, st
 }
 
 function createTextElement(project, { text, x, y, fontSize, fontFamily, color, align, shadow }) {
-  const { validateFont, getDefaultFont } = require('./fonts')
+  const { validateFont, getDefaultFont, getDefaultFontFamily } = require('./fonts')
 
   const fontSizeVal = fontSize || 48
   const textColor = color || '#ffffff'
@@ -479,11 +479,25 @@ function createTextElement(project, { text, x, y, fontSize, fontFamily, color, a
     }
   }
 
+  // 获取字体：如果用户指定了字体，优先使用；否则使用默认字体
+  // Paper.js 的 fontFamily 会使用系统的字体 fallback 机制
+  let finalFontFamily = getDefaultFontFamily()
+  if (fontFamily) {
+    const validatedFont = validateFont(fontFamily)
+    // 如果字体已注册，使用注册的名称
+    if (validatedFont && validatedFont !== getDefaultFontFamily()) {
+      finalFontFamily = validatedFont
+    } else {
+      // 如果字体未注册但用户指定了，使用用户指定的名称（让系统处理 fallback）
+      finalFontFamily = fontFamily
+    }
+  }
+
   const textItem = new paper.PointText({
     point: [x + offsetX, y],
     content: text,
     fontSize: fontSizeVal,
-    fontFamily: validateFont(fontFamily) || getDefaultFont(),
+    fontFamily: finalFontFamily,
     fillColor: new paper.Color(textColor),
     justification: alignment,
   })

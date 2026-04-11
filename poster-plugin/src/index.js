@@ -25,6 +25,9 @@ const {
   addBackground,
   addSVG,
 } = require('./elements')
+
+// 字体管理
+const { listAllFonts, getDefaultFont, getDefaultFontFamily, isEmojiFont } = require('./fonts')
 const {
   createCard,
   createBadge,
@@ -93,6 +96,49 @@ module.exports = function (Plugin) {
           success: true,
           presets: Object.entries(PRESETS).map(([key, value]) => ({ key, ...value })),
         }),
+      },
+
+      // ==================== 字体管理 ====================
+
+      /**
+       * 列出所有已注册的字体
+       */
+      list_poster_fonts: {
+        description: '列出所有已注册字体的列表（包括字体名称、路径、是否默认等）',
+        inputSchema: z.object({
+          filter: z.enum(['all', 'emoji', 'regular']).optional().describe('字体过滤类型'),
+        }),
+        execute: async (args) => {
+          try {
+            const fontData = listAllFonts()
+            
+            let fonts = fontData.fonts
+            let regular = fontData.regular
+            let emoji = fontData.emoji
+            
+            // 根据过滤类型筛选
+            if (args.filter === 'emoji') {
+              fonts = fonts.filter(f => f.isEmoji)
+              regular = []
+              emoji = fonts.map(f => f.name)
+            } else if (args.filter === 'regular') {
+              fonts = fonts.filter(f => !f.isEmoji)
+              regular = fonts.map(f => f.name)
+              emoji = []
+            }
+            
+            return {
+              success: true,
+              fonts,
+              default: fontData.default,
+              regular,
+              emoji,
+              total: fonts.length,
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
       },
 
       /**

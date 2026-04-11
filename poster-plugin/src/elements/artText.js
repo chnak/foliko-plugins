@@ -3,7 +3,7 @@
  */
 
 const paper = require('paper')
-const { validateFont, getDefaultFont } = require('../fonts')
+const { validateFont, getDefaultFontFamily } = require('../fonts')
 
 /**
  * 添加艺术文字
@@ -24,7 +24,7 @@ function addArtText(project, args) {
     point: [x, y],
     content: text,
     fontSize: fontSize || 120,
-    fontFamily: validateFont(fontFamily) || getDefaultFont(),
+    fontFamily: validateFont(fontFamily) || getDefaultFontFamily(),
     fillColor: gradient
       ? new paper.Color(gradient.colors[0])
       : new paper.Color('#ffffff'),

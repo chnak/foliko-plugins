@@ -4,7 +4,7 @@
  */
 
 const paper = require('paper')
-const { validateFont, getDefaultFont, getRegisteredFonts } = require('../fonts')
+const { validateFont, getDefaultFontFamily, getRegisteredFonts } = require('../fonts')
 
 /**
  * 检测文本是否包含 emoji
@@ -27,7 +27,7 @@ function containsEmoji(text) {
  * 获取适合的字体（考虑 emoji）
  */
 function getFontForText(requestedFont, text) {
-  const baseFont = validateFont(requestedFont) || getDefaultFont()
+  const baseFont = validateFont(requestedFont) || getDefaultFontFamily()
   if (containsEmoji(text)) {
     const registeredFonts = getRegisteredFonts()
     const emojiFont = registeredFonts.find(f => {

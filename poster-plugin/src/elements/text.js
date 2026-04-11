@@ -1,9 +1,9 @@
 /**
- * 文字元素
+ * 文字元素 - 支持多字体 fallback
  */
 
 const paper = require('paper')
-const { validateFont, getDefaultFont, getRegisteredFonts } = require('../fonts')
+const { validateFont, getDefaultFont, getDefaultFontFamily, getFontFallbackChain, isEmojiFont } = require('../fonts')
 
 /**
  * 检测文本是否包含 emoji
@@ -22,8 +22,8 @@ function containsEmoji(text) {
     /\u{1F900}-\u{1F9FF}/u, // 表情符号补充
     /\u{1FA00}-\u{1FA6F}/u, // 棋牌符号
     /\u{1FA70}-\u{1FAFF}/u, // 装饰符号
-    /\u{2600}-\u{26FF}/u,   // 杂项符号
-    /\u{2700}-\u{27BF}/u,   // 装饰符号
+    /\u2600-\u26FF/u,   // 杂项符号
+    /\u2700-\u27BF/u,   // 装饰符号
     /[\u{1F000}-\u{1F02F}]/u, // 麻将牌
   ]
 
@@ -39,38 +39,66 @@ function containsEmoji(text) {
 }
 
 /**
- * 获取适合的字体（考虑 emoji）
+ * 检测文本是否包含中文
+ */
+function containsChinese(text) {
+  if (!text || typeof text !== 'string') return false
+  return /[\u4e00-\u9fff]/.test(text)
+}
+
+/**
+ * 获取适合的字体（考虑 emoji 和中文）
  */
 function getFontForText(requestedFont, text) {
-  const baseFont = validateFont(requestedFont) || getDefaultFont()
-
+  // 获取验证后的字体
+  const baseFont = validateFont(requestedFont) || getDefaultFontFamily()
+  
   // 如果文本包含 emoji，尝试使用支持 emoji 的字体
   if (containsEmoji(text)) {
-    const registeredFonts = getRegisteredFonts()
-
-    // 优先查找专门的 emoji 字体（多种命名方式）
-    const emojiFont = registeredFonts.find(f => {
-      if (!f) return false
-      const lower = f.toLowerCase()
-      return (
-        lower.includes('color emoji') ||      // Noto Color Emoji, Apple Color Emoji
-        lower.includes('noto emoji') ||       // Noto Emoji
-        lower.includes('segoe ui emoji') ||    // Windows Segoe UI Emoji
-        lower.includes('segoe ui symbol') ||  // Windows Segoe UI Symbol
-        lower.includes('segui') ||            // Windows Segoe UI 开头
-        lower.includes('symbola') ||           // Symbola
-        lower.includes('emoji')                // 任何包含 emoji 的字体
-      )
-    })
-
-    if (emojiFont) {
-      console.log(`[poster] 检测到 emoji，使用字体: ${emojiFont}`)
-      return emojiFont
-    } else {
-      console.log(`[poster] 检测到 emoji，但未找到专用 emoji 字体，已注册字体: ${registeredFonts.join(', ')}`)
+    const chain = getFontFallbackChain(baseFont)
+    
+    // 创建一个混合字体链：emoji 字体优先，然后是主字体，然后是回退
+    const emojiFonts = ['Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Symbola', 'Noto Emoji']
+    
+    for (const ef of emojiFonts) {
+      if (!chain.includes(ef)) {
+        chain.unshift(ef) // emoji 字体放到最前面
+      }
     }
+    
+    console.log(`[poster] 检测到 emoji，字体链: ${chain.join(' > ')}`)
+    return chain.join(', ') // Paper.js 支持逗号分隔的字体链
   }
-
+  
+  // 如果文本包含中文
+  if (containsChinese(text)) {
+    const chain = getFontFallbackChain(baseFont)
+    
+    // 中文字体优先级调整
+    const chineseFonts = ['Microsoft YaHei', 'SimHei', 'SimSun', 'Noto Sans CJK SC']
+    const adjustedChain = []
+    
+    // 先加中文字体
+    for (const cf of chineseFonts) {
+      if (chain.includes(cf)) {
+        const idx = chain.indexOf(cf)
+        chain.splice(idx, 1)
+        adjustedChain.push(cf)
+      }
+    }
+    
+    // 再加原链
+    adjustedChain.push(...chain)
+    
+    // 最后加主字体（确保它在中文回退之后）
+    if (!adjustedChain.includes(baseFont)) {
+      adjustedChain.unshift(baseFont)
+    }
+    
+    console.log(`[poster] 检测到中文，字体链: ${adjustedChain.join(' > ')}`)
+    return adjustedChain.join(', ')
+  }
+  
   return baseFont
 }
 
@@ -86,6 +114,7 @@ function addText(project, args) {
     shadow,
   } = args
 
+  // 获取适合的字体（支持多字体 fallback）
   const font = getFontForText(fontFamily, text)
 
   const textItem = new paper.PointText({
@@ -103,7 +132,7 @@ function addText(project, args) {
     textItem.shadowOffset = new paper.Point(shadow.offsetX || 2, shadow.offsetY || 2)
   }
 
-  return { success: true, id: textItem.id, type: 'text' }
+  return { success: true, id: textItem.id, type: 'text', font: font }
 }
 
 module.exports = addText
