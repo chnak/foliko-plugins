@@ -88,10 +88,22 @@ class CanvasManager {
    * 添加背景图片
    */
   async _addBackgroundImage(imageSrc, w, h) {
+    // 防止路径遍历攻击
+    if (imageSrc.includes('..')) {
+      throw new Error('Invalid path: directory traversal not allowed')
+    }
+
     // 本地文件路径
     let absolutePath = imageSrc
     if (!path.isAbsolute(absolutePath)) {
       absolutePath = path.join(process.cwd(), absolutePath)
+    }
+
+    // 确保解析后的路径在允许范围内
+    const resolvedPath = path.resolve(absolutePath)
+    const cwd = path.resolve(process.cwd())
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Invalid path: access outside working directory not allowed')
     }
 
     if (!fs.existsSync(absolutePath)) {

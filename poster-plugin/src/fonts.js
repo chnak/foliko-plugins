@@ -329,12 +329,12 @@ function initFonts() {
   fontInfoList = []
   registeredFonts.clear()
 
-  console.log('[poster] 初始化字体系统...')
-  console.log(`[poster] 平台: ${process.platform}`)
+  // console.log('[poster] 初始化字体系统...')
+  // console.log(`[poster] 平台: ${process.platform}`)
 
   // 1. 优先加载插件自带的字体
   const pluginFontsDir = getPluginFontsDir()
-  console.log(`[poster] 插件字体目录: ${pluginFontsDir}`)
+  // console.log(`[poster] 插件字体目录: ${pluginFontsDir}`)
 
   if (fs.existsSync(pluginFontsDir)) {
     const fontFiles = fs.readdirSync(pluginFontsDir)
@@ -363,7 +363,7 @@ function initFonts() {
       }
 
       if (registerFontFile(fontPath, fontName, options)) {
-        console.log(`[poster] 已注册插件字体: ${fontName} (${file})`)
+        // console.log(`[poster] 已注册插件字体: ${fontName} (${file})`)
 
         // 微软雅黑设为默认
         if ((fontName === 'Microsoft YaHei' || fontName === '微软雅黑') && options.weight === 'normal') {
@@ -376,7 +376,7 @@ function initFonts() {
             isDefault: true,
             source: 'plugin',
           }
-          console.log(`[poster] 设为默认字体: Microsoft YaHei`)
+          // console.log(`[poster] 设为默认字体: Microsoft YaHei`)
         }
 
         fontInfoList.push({
@@ -391,7 +391,7 @@ function initFonts() {
   }
 
   // 2. 加载系统字体
-  console.log('[poster] 加载系统字体...')
+  // console.log('[poster] 加载系统字体...')
   const systemFonts = getSystemFontPaths()
 
   for (const font of systemFonts) {
@@ -425,7 +425,7 @@ function initFonts() {
           isDefault: true,
           source: 'system',
         }
-        console.log(`[poster] 设为默认字体: ${candidate}`)
+        // console.log(`[poster] 设为默认字体: ${candidate}`)
         break
       }
     }
@@ -467,8 +467,8 @@ function initFonts() {
   }
 
   // 打印注册结果
-  console.log(`[poster] 字体注册完成，共 ${registeredFonts.size} 个字体`)
-  console.log(`[poster] 默认字体: ${defaultFont.name} (${defaultFont.source})`)
+  // console.log(`[poster] 字体注册完成，共 ${registeredFonts.size} 个字体`)
+  // console.log(`[poster] 默认字体: ${defaultFont.name} (${defaultFont.source})`)
 
   // 打印中文字体列表
   const cjkFonts = Array.from(registeredFonts.keys()).filter(f =>
@@ -477,7 +477,7 @@ function initFonts() {
     f.includes('Fang') || f.includes('Yuan') || f.includes('PingFang')
   )
   if (cjkFonts.length > 0) {
-    console.log(`[poster] 已注册 CJK 字体: ${cjkFonts.join(', ')}`)
+    // console.log(`[poster] 已注册 CJK 字体: ${cjkFonts.join(', ')}`)
   }
 
   refreshFontList()
@@ -593,7 +593,10 @@ function getFontFallbackChain(primaryFont, text = '') {
 
   // 检查文本是否包含中文或 emoji
   const hasChinese = /[\u4e00-\u9fff]/.test(text || primaryFont || '')
-  const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(text || '')
+  // 更全面的 emoji 检测（覆盖所有常见 emoji Unicode 范围）
+  const hasEmoji = /[\u{1F000}-\u{1F9FF}]/u.test(text || '') || 
+                   /[\u2600-\u26FF]/.test(text || '') || 
+                   /[\u2700-\u27BF]/.test(text || '')
 
   // 中文字体优先级
   if (hasChinese) {

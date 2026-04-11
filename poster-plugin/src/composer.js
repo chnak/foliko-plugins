@@ -5,6 +5,12 @@
  */
 
 const paper = require('paper')
+const fs = require('fs')
+const path = require('path')
+
+// 中文字符正则表达式常量（用于宽度计算）
+// CJK统一汉字基本区: \u4e00-\u9fff (包含大部分常用汉字)
+const CHINESE_CHAR_REGEX = /[\u4e00-\u9fff]/
 
 // 导入新组件
 const createButton = require('./components/button')
@@ -274,18 +280,27 @@ async function createComponent(project, canvas, config) {
 
 function createBackgroundElement(project, canvas, { color, gradient, image }) {
   if (image) {
-    const fs = require('fs')
-    const path = require('path')
-
     // 确保 image 是字符串
     if (typeof image !== 'string') {
       return { success: false, error: 'Background image must be a string' }
+    }
+
+    // 防止路径遍历攻击
+    if (image.includes('..')) {
+      throw new Error('Invalid path: directory traversal not allowed')
     }
 
     // 本地文件路径
     let absolutePath = image
     if (!path.isAbsolute(absolutePath)) {
       absolutePath = path.join(process.cwd(), absolutePath)
+    }
+
+    // 确保解析后的路径在允许范围内
+    const resolvedPath = path.resolve(absolutePath)
+    const cwd = path.resolve(process.cwd())
+    if (!resolvedPath.startsWith(cwd)) {
+      throw new Error('Invalid path: access outside working directory not allowed')
     }
 
     if (!fs.existsSync(absolutePath)) {
@@ -468,7 +483,7 @@ function createTextElement(project, { text, x, y, fontSize, fontFamily, color, a
   let offsetX = 0
   if (alignment === 'center' || alignment === 'right') {
     // 估算文字宽度：中文约 1.0 倍字体大小，英文约 0.5 倍
-    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
+    const chineseChars = (text.match(CHINESE_CHAR_REGEX) || []).length
     const otherChars = text.length - chineseChars
     const textWidth = chineseChars * fontSizeVal * 1.0 + otherChars * fontSizeVal * 0.5
 
@@ -588,7 +603,7 @@ function createRichTextElement(project, {
 
   // 估算字符宽度（中文约等于 fontSize，英文约等于 fontSize * 0.5）
   const getCharWidth = (char) => {
-    return /[\u4e00-\u9fa5]/.test(char) ? fontSize : fontSize * 0.5
+    return CHINESE_CHAR_REGEX.test(char) ? fontSize : fontSize * 0.5
   }
 
   // 计算文本宽度
@@ -691,74 +706,75 @@ function createRichTextElement(project, {
   }
 }
 
-const fs = require('fs')
-
 async function createSVGElement(project, { src, x = 0, y = 0, width, height, opacity = 1 }) {
-  const fs = require('fs')
-  const path = require('path')
+  try {
+    // 确保 src 是字符串
+    if (typeof src !== 'string') {
+      return { success: false, error: 'SVG source must be a string' }
+    }
 
-  // 确保 src 是字符串
-  if (typeof src !== 'string') {
-    return { success: false, error: 'SVG source must be a string' }
-  }
+    // 防止路径遍历攻击
+    if (src.includes('..')) {
+      return { success: false, error: 'Invalid path: directory traversal not allowed' }
+    }
 
-  let svgContent = src
+    let svgContent = src
 
-  // 如果是文件路径，读取文件内容
-  if (!src.startsWith('<') && !src.startsWith('<?xml')) {
-    try {
+    // 如果是文件路径，读取文件内容
+    if (!src.startsWith('<') && !src.startsWith('<?xml')) {
       let filePath = src
       if (!path.isAbsolute(filePath)) {
         filePath = path.join(process.cwd(), filePath)
       }
+      // 确保解析后的路径在允许范围内
+      const resolvedPath = path.resolve(filePath)
+      const cwd = path.resolve(process.cwd())
+      if (!resolvedPath.startsWith(cwd)) {
+        return { success: false, error: 'Invalid path: access outside working directory not allowed' }
+      }
       svgContent = fs.readFileSync(filePath, 'utf8')
-    } catch (e) {
-      return { success: false, error: `Failed to read SVG file: ${e.message}` }
     }
-  }
 
-  // 导入 SVG 到指定项目
-  let svg
-  try {
-    svg = project.importSVG(svgContent)
+    // 导入 SVG 到指定项目
+    const svg = project.importSVG(svgContent)
+
+    if (!svg) {
+      return { success: false, error: 'Failed to import SVG' }
+    }
+
+    // 确保 SVG 添加到活动层
+    if (project && project.activeLayer && svg.parent !== project.activeLayer) {
+      project.activeLayer.addChild(svg)
+    }
+
+    // 设置位置
+    svg.position = new paper.Point(x, y)
+
+    // 设置尺寸
+    if (width && height) {
+      const scaleX = width / svg.bounds.width
+      const scaleY = height / svg.bounds.height
+      svg.scale(Math.min(scaleX, scaleY), svg.bounds.center)
+    } else if (width) {
+      svg.scale(width / svg.bounds.width, svg.bounds.center)
+    } else if (height) {
+      svg.scale(height / svg.bounds.height, svg.bounds.center)
+    }
+
+    // 设置透明度
+    if (opacity !== undefined) {
+      svg.opacity = opacity
+    }
+
+    return {
+      success: true,
+      id: svg.id,
+      type: 'svg',
+      width: svg.bounds.width,
+      height: svg.bounds.height,
+    }
   } catch (e) {
-    return { success: false, error: `Failed to import SVG: ${e.message}` }
-  }
-
-  if (!svg) {
-    return { success: false, error: 'Failed to import SVG' }
-  }
-
-  // 确保 SVG 添加到活动层
-  if (project && project.activeLayer && svg.parent !== project.activeLayer) {
-    project.activeLayer.addChild(svg)
-  }
-
-  // 设置位置
-  svg.position = new paper.Point(x, y)
-
-  // 设置尺寸
-  if (width && height) {
-    const scaleX = width / svg.bounds.width
-    const scaleY = height / svg.bounds.height
-    svg.scale(Math.min(scaleX, scaleY), svg.bounds.center)
-  } else if (width) {
-    svg.scale(width / svg.bounds.width, svg.bounds.center)
-  } else if (height) {
-    svg.scale(height / svg.bounds.height, svg.bounds.center)
-  }
-
-  // 设置透明度
-  if (opacity !== undefined) {
-    svg.opacity = opacity
-  }
-
-  return {
-    success: true,
-    id: svg.id,
-    type: 'svg',
-    width: svg.bounds.width,
-    height: svg.bounds.height,
+    return { success: false, error: `SVG creation failed: ${e.message}` }
   }
 }
 
@@ -784,7 +800,11 @@ function createCardComponent(project, canvas, {
     card.strokeColor = new paper.Color(border)
     card.strokeWidth = borderWidth || 1
   }
-  elements.push({ type: 'rectangle', id: card.id })
+  const cardEl = { type: 'rectangle', id: card.id }
+  elements.push(cardEl)
+  if (project && project.activeLayer) {
+    project.activeLayer.addChild(card)
+  }
 
   // 标题
   if (title) {
@@ -795,7 +815,11 @@ function createCardComponent(project, canvas, {
       fillColor: new paper.Color(titleColor || '#000000'),
       justification: 'left',
     })
-    elements.push({ type: 'text', id: titleText.id })
+    const titleEl = { type: 'text', id: titleText.id }
+    elements.push(titleEl)
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(titleText)
+    }
   }
 
   // 副标题
@@ -808,7 +832,11 @@ function createCardComponent(project, canvas, {
       fillColor: new paper.Color(subtitleColor || '#666666'),
       justification: 'left',
     })
-    elements.push({ type: 'text', id: subtitleText.id })
+    const subtitleEl = { type: 'text', id: subtitleText.id }
+    elements.push(subtitleEl)
+    if (project && project.activeLayer) {
+      project.activeLayer.addChild(subtitleText)
+    }
   }
 
   return { success: true, elements, type: 'card' }
@@ -852,7 +880,7 @@ function createCTAComponent(project, canvas, {
   // 确保 text 是字符串
   const textStr = String(text || '')
   // 使用更准确的字符宽度估算：中文约1.0，英文约0.5
-  const chineseChars = (textStr.match(/[\u4e00-\u9fa5]/g) || []).length
+  const chineseChars = (textStr.match(CHINESE_CHAR_REGEX) || []).length
   const otherChars = textStr.length - chineseChars
   const textWidth = chineseChars * fontSize * 1.0 + otherChars * fontSize * 0.5
   const btnWidth = customWidth || (textWidth + padding * 2)
