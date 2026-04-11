@@ -4,6 +4,7 @@
 
 const paper = require('paper')
 const PRESETS = require('./presets')
+const fonts = require('./fonts')
 const fs = require('fs')
 const path = require('path')
 
@@ -48,6 +49,13 @@ class CanvasManager {
     this._paper = paper
     this._width = w
     this._height = h
+
+    // 初始化字体系统
+    if (typeof fonts.init === 'function') {
+      fonts.init()
+    } else if (typeof fonts.initFonts === 'function') {
+      fonts.initFonts()
+    }
 
     // 添加背景
     if (background) {

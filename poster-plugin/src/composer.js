@@ -458,7 +458,7 @@ function createPolygonElement(project, { cx, cy, radius, sides, fill, stroke, st
 }
 
 function createTextElement(project, { text, x, y, fontSize, fontFamily, color, align, shadow }) {
-  const { validateFont, getDefaultFont, getDefaultFontFamily } = require('./fonts')
+  const { validateFont, getDefaultFontFamily, getFontFallbackChain } = require('./fonts')
 
   const fontSizeVal = fontSize || 48
   const textColor = color || '#ffffff'
@@ -479,19 +479,9 @@ function createTextElement(project, { text, x, y, fontSize, fontFamily, color, a
     }
   }
 
-  // 获取字体：如果用户指定了字体，优先使用；否则使用默认字体
-  // Paper.js 的 fontFamily 会使用系统的字体 fallback 机制
-  let finalFontFamily = getDefaultFontFamily()
-  if (fontFamily) {
-    const validatedFont = validateFont(fontFamily)
-    // 如果字体已注册，使用注册的名称
-    if (validatedFont && validatedFont !== getDefaultFontFamily()) {
-      finalFontFamily = validatedFont
-    } else {
-      // 如果字体未注册但用户指定了，使用用户指定的名称（让系统处理 fallback）
-      finalFontFamily = fontFamily
-    }
-  }
+  // 获取字体链（支持 @napi-rs/canvas 字体回退）
+  const chain = getFontFallbackChain(fontFamily, text)
+  const finalFontFamily = chain.length === 1 ? chain[0] : chain.join(', ')
 
   const textItem = new paper.PointText({
     point: [x + offsetX, y],
@@ -516,13 +506,17 @@ function createTextElement(project, { text, x, y, fontSize, fontFamily, color, a
 }
 
 function createArtTextElement(project, { text, x, y, fontSize, fontFamily, gradient, strokeColor, strokeWidth, shadow }) {
-  const { validateFont, getDefaultFont } = require('./fonts')
+  const { getFontFallbackChain } = require('./fonts')
+
+  // 获取字体链
+  const chain = getFontFallbackChain(fontFamily, text)
+  const finalFont = chain.length === 1 ? chain[0] : chain.join(', ')
 
   const textItem = new paper.PointText({
     point: [x, y],
     content: text,
     fontSize: fontSize || 120,
-    fontFamily: validateFont(fontFamily) || getDefaultFont(),
+    fontFamily: finalFont,
     fillColor: gradient ? new paper.Color(gradient.colors[0]) : new paper.Color('#ffffff'),
     justification: 'center',
   })
@@ -586,8 +580,11 @@ function createRichTextElement(project, {
   rotation = 0,
   shadow = null,
 }) {
-  const { validateFont, getDefaultFont } = require('./fonts')
-  const validatedFont = validateFont(fontFamily) || getDefaultFont()
+  const { getFontFallbackChain } = require('./fonts')
+
+  // 获取字体链
+  const chain = getFontFallbackChain(fontFamily, text)
+  const finalFontFamily = chain.length === 1 ? chain[0] : chain.join(', ')
 
   // 估算字符宽度（中文约等于 fontSize，英文约等于 fontSize * 0.5）
   const getCharWidth = (char) => {
@@ -653,7 +650,7 @@ function createRichTextElement(project, {
       point: [x + offsetX, lineY + fontSize],
       content: line,
       fontSize: fontSize,
-      fontFamily: validatedFont,
+      fontFamily: finalFontFamily,
       fillColor: new paper.Color(color),
       justification: align,
     })
@@ -2207,11 +2204,17 @@ function createWatermarkComponent(project, canvas, {
   text, cx, cy, color = 'rgba(0,0,0,0.1)', fontSize = 48,
   fontFamily = 'sans-serif', opacity = 0.1, rotation = 0, align = 'center'
 }) {
+  const { getFontFallbackChain } = require('./fonts')
+
+  // 获取字体链
+  const chain = getFontFallbackChain(fontFamily, text)
+  const finalFont = chain.length === 1 ? chain[0] : chain.join(', ')
+
   const label = new paper.PointText({
     point: [cx, cy],
     content: text,
     fontSize: fontSize,
-    fontFamily: fontFamily,
+    fontFamily: finalFont,
     fillColor: new paper.Color(color),
     justification: align,
     opacity: opacity

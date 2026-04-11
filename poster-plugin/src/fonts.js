@@ -1,10 +1,27 @@
 /**
  * 字体管理模块 - 支持多字体 fallback
+ * 使用 @napi-rs/canvas 原生 API 解决中文乱码问题
  */
 
 const path = require('path')
 const fs = require('fs')
-const { registerFont: registerFontFn } = require('canvas')
+
+// 导入 @napi-rs/canvas 原生 API
+let GlobalFonts = null
+try {
+  const canvas = require('@napi-rs/canvas')
+  GlobalFonts = canvas.GlobalFonts
+} catch (e) {
+  console.warn('[poster] @napi-rs/canvas 未安装，字体注册可能受限')
+}
+
+// 兼容旧的 canvas API（备用）
+let legacyRegisterFont = null
+try {
+  legacyRegisterFont = require('canvas').registerFont
+} catch (e) {
+  // ignore
+}
 
 // 已注册的字体
 const registeredFonts = new Map()
@@ -28,9 +45,9 @@ const emojiFontMappings = {
 // 中文字体别名映射表 - 将请求的字体映射到实际可用的字体
 const chineseFontMappings = {
   // 黑体系列
-  'SimHei': 'Noto Sans CJK SC',
-  '黑体': 'Noto Sans CJK SC',
-  'Hei': 'Noto Sans CJK SC',
+  'SimHei': 'Microsoft YaHei',
+  '黑体': 'Microsoft YaHei',
+  'Hei': 'Microsoft YaHei',
   'Microsoft YaHei': 'Microsoft YaHei',
   '微软雅黑': 'Microsoft YaHei',
   'msyh': 'Microsoft YaHei',
@@ -39,136 +56,72 @@ const chineseFontMappings = {
   'Noto Sans CJK': 'Noto Sans CJK SC',
   'Noto Sans CJK SC': 'Noto Sans CJK SC',
   'Noto Sans': 'Noto Sans CJK SC',
-  
+
   // 宋体系列
-  'SimSun': 'Noto Serif CJK SC',
-  '宋体': 'Noto Serif CJK SC',
-  'Song': 'Noto Serif CJK SC',
-  'SimSun_GB2312': 'Noto Serif CJK SC',
+  'SimSun': 'SimSun',
+  '宋体': 'SimSun',
+  'Song': 'SimSun',
+  'SimSun_GB2312': 'SimSun',
   '方正宋体': 'Noto Serif CJK SC',
   'Noto Serif CJK': 'Noto Serif CJK SC',
   'Noto Serif CJK SC': 'Noto Serif CJK SC',
-  
+
   // 楷体系列
-  'Kai': 'LXGWWenKai-Regular',
-  '楷体': 'LXGWWenKai-Regular',
-  'Kaiti': 'LXGWWenKai-Regular',
-  'STKaiti': 'LXGWWenKai-Regular',
-  '华文楷体': 'LXGWWenKai-Regular',
-  '楷书': 'LXGWWenKai-Regular',
-  'LXGW WenKai': 'LXGWWenKai-Regular',
-  'LXGWWenKai': 'LXGWWenKai-Regular',
-  'LXGWWenKai-Regular': 'LXGWWenKai-Regular',  // 文件名映射
-  '霞鹜文楷': 'LXGWWenKai-Regular',
-  
+  'Kai': 'LXGW WenKai',
+  '楷体': 'LXGW WenKai',
+  'Kaiti': 'LXGW WenKai',
+  'STKaiti': 'LXGW WenKai',
+  '华文楷体': 'LXGW WenKai',
+  '楷书': 'LXGW WenKai',
+  'LXGW WenKai': 'LXGW WenKai',
+  'LXGWWenKai': 'LXGW WenKai',
+  'LXGWWenKai-Regular': 'LXGW WenKai',
+  '霞鹜文楷': 'LXGW WenKai',
+
   // 仿宋系列
-  'FangSong': 'Noto Serif CJK SC',
-  '仿宋': 'Noto Serif CJK SC',
-  'FangSong_GB2312': 'Noto Serif CJK SC',
+  'FangSong': 'SimSun',
+  '仿宋': 'SimSun',
+  'FangSong_GB2312': 'SimSun',
   '方正仿宋': 'Noto Serif CJK SC',
-  
+
   // 幼圆
-  'YouYuan': 'Noto Sans CJK SC',
-  '幼圆': 'Noto Sans CJK SC',
-  '圆体': 'Noto Sans CJK SC',
-  
+  'YouYuan': 'Microsoft YaHei',
+  '幼圆': 'Microsoft YaHei',
+  '圆体': 'Microsoft YaHei',
+
   // 华文系列
-  'STHeiti': 'Noto Sans CJK SC',
-  '华文黑体': 'Noto Sans CJK SC',
-  'STSong': 'Noto Serif CJK SC',
-  '华文宋体': 'Noto Serif CJK SC',
-  'STSongti': 'Noto Serif CJK SC',
-  '华文宋体_GB2312': 'Noto Serif CJK SC',
+  'STHeiti': 'Microsoft YaHei',
+  '华文黑体': 'Microsoft YaHei',
+  'STSong': 'SimSun',
+  '华文宋体': 'SimSun',
+  'STSongti': 'SimSun',
+  '华文宋体_GB2312': 'SimSun',
   'STZhongsong': 'Noto Serif CJK SC',
   '华文中宋': 'Noto Serif CJK SC',
-  'STCaiyun': 'Noto Sans CJK SC',
-  '华文彩云': 'Noto Sans CJK SC',
-  'STXingkai': 'Noto Sans CJK SC',
-  '华文行楷': 'Noto Sans CJK SC',
-  'STXinwei': 'Noto Sans CJK SC',
-  '华文新魏': 'Noto Sans CJK SC',
-  'STLiti': 'Noto Sans CJK SC',
-  '华文隶书': 'Noto Sans CJK SC',
-  
+  'STCaiyun': 'Microsoft YaHei',
+  '华文彩云': 'Microsoft YaHei',
+  'STXingkai': 'Microsoft YaHei',
+  '华文行楷': 'Microsoft YaHei',
+  'STXinwei': 'Microsoft YaHei',
+  '华文新魏': 'Microsoft YaHei',
+  'STLiti': 'Microsoft YaHei',
+  '华文隶书': 'Microsoft YaHei',
+
   // 其他常见中文别名
-  'sans-serif': 'Noto Sans CJK SC',
-  'serif': 'Noto Serif CJK SC',
-  'monospace': 'Liberation Mono',
-  'PingFang': 'Noto Sans CJK SC',
-  'PingFang SC': 'Noto Sans CJK SC',
-  'Hiragino Sans GB': 'Noto Sans CJK SC',
-  '冬青黑体': 'Noto Sans CJK SC',
-  'WenQuanYi': 'Noto Sans CJK SC',
-  '文泉驿': 'Noto Sans CJK SC',
-  'WenQuanYi Micro Hei': 'Noto Sans CJK SC',
-  'WenQuanYi Zen Hei': 'Noto Sans CJK SC',
-  'AR PL': 'Noto Sans CJK SC',
-  'AR PL UKai': 'Noto Serif CJK SC',
+  'sans-serif': 'Microsoft YaHei',
+  'serif': 'SimSun',
+  'monospace': 'Consolas',
+  'PingFang': 'Microsoft YaHei',
+  'PingFang SC': 'Microsoft YaHei',
+  'Hiragino Sans GB': 'Microsoft YaHei',
+  '冬青黑体': 'Microsoft YaHei',
+  'WenQuanYi': 'Microsoft YaHei',
+  '文泉驿': 'Microsoft YaHei',
+  'WenQuanYi Micro Hei': 'Microsoft YaHei',
+  'WenQuanYi Zen Hei': 'Microsoft YaHei',
+  'AR PL': 'Microsoft YaHei',
+  'AR PL UKai': 'SimSun',
 }
-
-// 字体风格映射 - 不同字体适合不同风格
-const fontStyleMappings = {
-  '黑体': 'sans',
-  '宋体': 'serif',
-  '楷体': 'sans',
-  '仿宋': 'serif',
-  '幼圆': 'sans',
-  '华文黑体': 'sans',
-  '华文宋体': 'serif',
-  '华文楷体': 'sans',
-  '华文行楷': 'sans',
-  '华文隶书': 'sans',
-}
-
-// 系统字体路径
-const systemFonts = [
-  // ===== CJK 中文字体（优先注册，支持中文） =====
-  // Noto Sans CJK (思源黑体)
-  { path: '/usr/share/fonts/truetype/chinese/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK SC' },
-  { path: '/usr/share/fonts/truetype/chinese/NotoSansCJK-Bold.ttc', family: 'Noto Sans CJK SC Bold', weight: 'bold' },
-  // Source Han Sans CN (思源黑体简体中文)
-  { path: '/usr/share/fonts/truetype/chinese/SourceHanSansCN-Regular.otf', family: 'Source Han Sans CN' },
-  { path: '/usr/share/fonts/truetype/chinese/SourceHanSansCN-Bold.otf', family: 'Source Han Sans CN Bold', weight: 'bold' },
-  // Noto Serif CJK
-  { path: '/usr/share/fonts/truetype/chinese/NotoSerifCJK-Regular.ttc', family: 'Noto Serif CJK SC' },
-  { path: '/usr/share/fonts/truetype/chinese/NotoSerifCJK-Bold.ttc', family: 'Noto Serif CJK SC Bold', weight: 'bold' },
-  // 备用的 Noto Sans CJK 路径
-  { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK SC' },
-  { path: '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc', family: 'Noto Serif CJK SC' },
-  // ===== 插件目录字体（绝对路径）=====
-  { path: '/app/.agent/plugins/poster-plugin/fonts/微软雅黑.ttf', family: 'Microsoft YaHei' },
-  { path: '/app/.agent/plugins/poster-plugin/fonts/微软雅黑粗体.ttf', family: 'Microsoft YaHei Bold', weight: 'bold' },
-  { path: '/app/.agent/plugins/poster-plugin/fonts/LXGWWenKai-Regular.ttf', family: 'LXGW WenKai' },
-  { path: '/app/.agent/plugins/poster-plugin/fonts/NotoSerifCJKsc-Regular.ttc', family: 'Noto Serif CJK SC' },
-  // ===== Emoji 字体 =====
-  { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-  { path: '/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf', family: 'Symbola' },
-  // ===== Liberation 西文字体（包含中文支持） =====
-  { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
-  { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', family: 'Liberation Sans Bold', weight: 'bold' },
-  { path: '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf', family: 'Liberation Serif' },
-  { path: '/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf', family: 'Liberation Mono' },
-  // ===== 其他西文字体 =====
-  { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
-  { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
-  { path: '/usr/share/fonts/TTF/NotoSans-Regular.ttf', family: 'Noto Sans' },
-  // ===== Windows 字体 =====
-  { path: 'C:\\Windows\\Fonts\\msyh.ttc', family: 'Microsoft YaHei' },
-  { path: 'C:\\Windows\\Fonts\\msyhbd.ttc', family: 'Microsoft YaHei Bold', weight: 'bold' },
-  { path: 'C:\\Windows\\Fonts\\simhei.ttf', family: 'SimHei' },
-  { path: 'C:\\Windows\\Fonts\\simsun.ttc', family: 'SimSun' },
-  { path: 'C:\\Windows\\Fonts\\Arial.ttf', family: 'Arial' },
-  { path: 'C:\\Windows\\Fonts\\Times New Roman.ttf', family: 'Times New Roman' },
-  { path: 'C:\\Windows\\Fonts\\Consolas.ttf', family: 'Consolas' },
-  { path: 'C:\\Windows\\Fonts\\Georgia.ttf', family: 'Georgia' },
-  // Windows Emoji
-  { path: 'C:\\Windows\\Fonts\\seguiemj.ttf', family: 'Segoe UI Emoji' },
-  { path: 'C:\\Windows\\Fonts\\EmojiOne Color.ttf', family: 'EmojiOne Color' },
-  { path: '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
-  // macOS 字体
-  { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
-  { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
-]
 
 // 默认字体信息
 let defaultFont = {
@@ -181,11 +134,49 @@ let defaultFont = {
 }
 
 /**
- * 注册字体文件
+ * 使用 @napi-rs/canvas 原生 API 注册字体
+ */
+function registerFontWithGlobalFonts(fontPath, fontFamily, options = {}) {
+  if (!GlobalFonts) return false
+
+  try {
+    const absolutePath = path.resolve(fontPath)
+
+    // 使用 registerFromPath 注册字体
+    GlobalFonts.registerFromPath(absolutePath, fontFamily)
+
+    return true
+  } catch (e) {
+    console.log(`[poster] GlobalFonts 注册字体失败: ${fontFamily}`, e.message)
+    return false
+  }
+}
+
+/**
+ * 使用 legacy canvas API 注册字体（备用）
+ */
+function registerFontWithLegacy(fontPath, fontFamily, options = {}) {
+  if (!legacyRegisterFont) return false
+
+  try {
+    legacyRegisterFont(fontPath, {
+      family: fontFamily,
+      weight: options.weight || 'normal',
+      style: options.style || 'normal',
+    })
+    return true
+  } catch (e) {
+    console.log(`[poster] Legacy 注册字体失败: ${fontFamily}`, e.message)
+    return false
+  }
+}
+
+/**
+ * 注册字体文件 - 双 API 策略
  */
 function registerFontFile(fontPath, fontFamily, options = {}) {
   if (!fontFamily) return false
-  
+
   // 避免重复注册
   if (registeredFonts.has(fontFamily)) {
     return true
@@ -196,26 +187,34 @@ function registerFontFile(fontPath, fontFamily, options = {}) {
       return false
     }
 
-    registerFontFn(fontPath, {
-      family: fontFamily,
-      weight: options.weight || 'normal',
-      style: options.style || 'normal',
-    })
+    let success = false
 
-    const fontInfo = {
-      name: fontFamily,
-      family: fontFamily,
-      path: fontPath,
-      weight: options.weight || 'normal',
-      style: options.style || 'normal',
-      isDefault: false,
-      isEmoji: isEmojiFont(fontFamily),
-      source: options.source || 'unknown',
+    // 优先使用 @napi-rs/canvas 原生 API
+    if (GlobalFonts) {
+      success = registerFontWithGlobalFonts(fontPath, fontFamily, options)
     }
-    
-    registeredFonts.set(fontFamily, fontInfo)
-    
-    return true
+
+    // 同时使用 legacy API 保持兼容性（paper.js 可能需要）
+    if (!success && legacyRegisterFont) {
+      success = registerFontWithLegacy(fontPath, fontFamily, options)
+    }
+
+    if (success) {
+      const fontInfo = {
+        name: fontFamily,
+        family: fontFamily,
+        path: path.resolve(fontPath),
+        weight: options.weight || 'normal',
+        style: options.style || 'normal',
+        isDefault: false,
+        isEmoji: isEmojiFont(fontFamily),
+        source: options.source || 'unknown',
+      }
+
+      registeredFonts.set(fontFamily, fontInfo)
+    }
+
+    return success
   } catch (e) {
     console.log(`[poster] 注册字体失败: ${fontFamily}`, e.message)
     return false
@@ -236,158 +235,251 @@ function isEmojiFont(fontName) {
 }
 
 /**
+ * 获取插件字体目录
+ */
+function getPluginFontsDir() {
+  // 插件目录
+  const pluginDir = path.join(__dirname, '..')
+  const pluginFontsDir = path.join(pluginDir, 'fonts')
+
+  // 也尝试从工作目录
+  const cwdFontsDir = path.join(process.cwd(), '.agent', 'plugins', 'poster-plugin', 'fonts')
+
+  if (fs.existsSync(pluginFontsDir)) {
+    return pluginFontsDir
+  }
+  if (fs.existsSync(cwdFontsDir)) {
+    return cwdFontsDir
+  }
+  return pluginFontsDir
+}
+
+/**
+ * 获取系统字体路径
+ */
+function getSystemFontPaths() {
+  const isWin = process.platform === 'win32'
+  const isMac = process.platform === 'darwin'
+
+  const fonts = []
+
+  if (isWin) {
+    const winDir = 'C:\\Windows\\Fonts'
+    fonts.push(
+      // 中文首选 - 微软雅黑
+      { path: `${winDir}\\msyh.ttc`, family: 'Microsoft YaHei', weight: 'normal' },
+      { path: `${winDir}\\msyhbd.ttc`, family: 'Microsoft YaHei', weight: 'bold' },
+      // 备选中文字体
+      { path: `${winDir}\\simhei.ttf`, family: 'SimHei', weight: 'normal' },
+      { path: `${winDir}\\simsun.ttc`, family: 'SimSun', weight: 'normal' },
+      { path: `${winDir}\\simkai.ttf`, family: 'KaiTi', weight: 'normal' },
+      // 常用西文字体
+      { path: `${winDir}\\arial.ttf`, family: 'Arial', weight: 'normal' },
+      { path: `${winDir}\\ariali.ttf`, family: 'Arial', weight: 'normal', style: 'italic' },
+      { path: `${winDir}\\arialbi.ttf`, family: 'Arial', weight: 'bold', style: 'italic' },
+      { path: `${winDir}\\arialbd.ttf`, family: 'Arial', weight: 'bold' },
+      { path: `${winDir}\\times.ttf`, family: 'Times New Roman', weight: 'normal' },
+      { path: `${winDir}\\timesi.ttf`, family: 'Times New Roman', weight: 'normal', style: 'italic' },
+      { path: `${winDir}\\timesbi.ttf`, family: 'Times New Roman', weight: 'bold', style: 'italic' },
+      { path: `${winDir}\\timesbd.ttf`, family: 'Times New Roman', weight: 'bold' },
+      { path: `${winDir}\\consola.ttf`, family: 'Consolas', weight: 'normal' },
+      { path: `${winDir}\\calibri.ttf`, family: 'Calibri', weight: 'normal' },
+      // Emoji 字体
+      { path: `${winDir}\\seguiemj.ttf`, family: 'Segoe UI Emoji', weight: 'normal' },
+    )
+  } else if (isMac) {
+    fonts.push(
+      // macOS 中文字体
+      { path: '/System/Library/Fonts/PingFang.ttc', family: 'PingFang SC', weight: 'normal' },
+      { path: '/System/Library/Fonts/STHeiti Light.ttc', family: 'Heiti SC', weight: 'normal' },
+      { path: '/System/Library/Fonts/STHeiti Medium.ttc', family: 'Heiti SC', weight: 'bold' },
+      // Emoji
+      { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji', weight: 'normal' },
+      // 常用西文
+      { path: '/System/Library/Fonts/Helvetica.ttc', family: 'Helvetica', weight: 'normal' },
+      { path: '/System/Library/Fonts/Times.ttc', family: 'Times New Roman', weight: 'normal' },
+    )
+  } else {
+    // Linux
+    fonts.push(
+      // 系统 CJK 字体
+      { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK SC', weight: 'normal' },
+      { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc', family: 'Noto Sans CJK SC', weight: 'bold' },
+      { path: '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc', family: 'Noto Serif CJK SC', weight: 'normal' },
+      // 备选路径
+      { path: '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK SC', weight: 'normal' },
+      { path: '/usr/share/fonts/truetype/chinese/NotoSansCJK-Regular.ttc', family: 'Noto Sans CJK SC', weight: 'normal' },
+      // 西文字体
+      { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans', weight: 'normal' },
+      { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', family: 'DejaVu Sans', weight: 'bold' },
+      // Emoji
+      { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji', weight: 'normal' },
+      { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji', weight: 'normal' },
+    )
+  }
+
+  return fonts
+}
+
+/**
  * 初始化字体
  */
 function initFonts() {
   // 清空之前的字体信息
   fontInfoList = []
-  
-  // 插件字体目录
-  const pluginFontsDir = path.join(__dirname, '..', 'fonts')
+  registeredFonts.clear()
 
-  // 优先加载插件自带的字体
+  console.log('[poster] 初始化字体系统...')
+  console.log(`[poster] 平台: ${process.platform}`)
+
+  // 1. 优先加载插件自带的字体
+  const pluginFontsDir = getPluginFontsDir()
+  console.log(`[poster] 插件字体目录: ${pluginFontsDir}`)
+
   if (fs.existsSync(pluginFontsDir)) {
     const fontFiles = fs.readdirSync(pluginFontsDir)
-    
+
     for (const file of fontFiles) {
       if (!file.endsWith('.ttf') && !file.endsWith('.otf') && !file.endsWith('.ttc')) {
         continue
       }
-      
+
       const fontPath = path.join(pluginFontsDir, file)
       let fontName = path.basename(file, path.extname(file))
 
-      // 检查是否为 Emoji 字体，如果是则使用标准名称注册
-      let finalFontName = fontName
+      // 检查是否为 Emoji 字体
       if (isEmojiFont(fontName)) {
-        finalFontName = emojiFontMappings[fontName] || 'Noto Color Emoji'
+        fontName = emojiFontMappings[fontName] || 'Noto Color Emoji'
       }
 
-      // 尝试注册
-      if (registerFontFile(fontPath, finalFontName, { source: 'plugin' })) {
-        if (isEmojiFont(finalFontName)) {
-          console.log(`[poster] 已注册插件 Emoji 字体: ${finalFontName}`)
-        } else {
-          // 微软雅黑设为默认字体
-          if (fontName.includes('微软雅黑') && !fontName.includes('粗体')) {
-            defaultFont = {
-              name: finalFontName,
-              family: finalFontName,
-              path: fontPath,
-              weight: 'normal',
-              style: 'normal',
-              isDefault: true,
-              source: 'plugin',
-            }
-            console.log(`[poster] 已注册插件字体(设为默认): ${finalFontName}`)
-          } else {
-            console.log(`[poster] 已注册插件字体: ${finalFontName}`)
+      // 特殊处理中文文件名
+      if (fontName === '微软雅黑' || fontName === '微软雅黑粗体') {
+        fontName = fontName.includes('粗体') ? 'Microsoft YaHei' : 'Microsoft YaHei'
+      }
+
+      const options = {
+        source: 'plugin',
+        weight: fontName.includes('Bold') || fontName.includes('粗体') ? 'bold' : 'normal',
+      }
+
+      if (registerFontFile(fontPath, fontName, options)) {
+        console.log(`[poster] 已注册插件字体: ${fontName} (${file})`)
+
+        // 微软雅黑设为默认
+        if ((fontName === 'Microsoft YaHei' || fontName === '微软雅黑') && options.weight === 'normal') {
+          defaultFont = {
+            name: 'Microsoft YaHei',
+            family: 'Microsoft YaHei',
+            path: fontPath,
+            weight: 'normal',
+            style: 'normal',
+            isDefault: true,
+            source: 'plugin',
           }
+          console.log(`[poster] 设为默认字体: Microsoft YaHei`)
         }
-        
-        // 添加到列表
+
         fontInfoList.push({
-          name: finalFontName,
-          family: finalFontName,
+          name: fontName,
+          family: fontName,
           path: fontPath,
           source: 'plugin',
-          isEmoji: isEmojiFont(finalFontName),
+          isEmoji: isEmojiFont(fontName),
         })
-      } else {
-        console.log(`[poster] 字体文件加载失败: ${file}`)
       }
     }
   }
 
-  // 强制加载系统 CJK 字体（即使插件字体已存在）
-  console.log('[poster] 正在加载系统 CJK 字体...')
+  // 2. 加载系统字体
+  console.log('[poster] 加载系统字体...')
+  const systemFonts = getSystemFontPaths()
+
   for (const font of systemFonts) {
-    if (font.family.includes('CJK') || font.family.includes('Han') || font.family.includes('Noto Sans')) {
-      if (registerFontFile(font.path, font.family, { weight: font.weight, source: 'system' })) {
-        console.log(`[poster] 已注册系统字体: ${font.family}`)
-      }
-    }
-  }
-  
-  // 如果没有注册到任何字体，再尝试系统字体
-  if (!defaultFont.path) {
-    for (const font of systemFonts) {
-      if (registerFontFile(font.path, font.family, { weight: font.weight, source: 'system' })) {
-        if (font.weight !== 'bold') {
-          defaultFont = {
-            name: font.family,
-            family: font.family,
-            path: font.path,
-            weight: font.weight || 'normal',
-            style: font.style || 'normal',
-            isDefault: true,
-            source: 'system',
-          }
-          console.log(`[poster] 已注册系统字体: ${font.family}`)
-          break
-        }
-      }
-    }
-  }
-
-  // 确保有默认字体
-  if (!registeredFonts.has(defaultFont.name)) {
-    registeredFonts.set('sans-serif', { 
-      name: 'sans-serif', 
-      family: 'sans-serif', 
-      path: null, 
-      isDefault: true,
-      source: 'fallback' 
-    })
-    defaultFont = {
-      name: 'sans-serif',
-      family: 'sans-serif',
-      path: null,
-      isDefault: true,
-      source: 'fallback',
-    }
-    console.log('[poster] 使用默认字体: sans-serif')
-  }
-
-  // 注册系统 emoji 字体（用于支持 emoji 渲染）
-  const emojiFonts = [
-    { path: 'C:\\Windows\\Fonts\\seguiemj.ttf', family: 'Segoe UI Emoji' },
-    { path: 'C:\\Windows\\Fonts\\seguisym.ttf', family: 'Segoe UI Symbol' },
-    { path: 'C:\\Windows\\Fonts\\seguisb.ttf', family: 'Segoe UI Symbol' },
-    { path: '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/opentype/noto/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/google-noto-cursive/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/noto-fonts/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/TTF/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/truetype/NotoColorEmoji.ttf', family: 'Noto Color Emoji' },
-    { path: '/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf', family: 'Noto Emoji' },
-    { path: '/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf', family: 'Noto Sans' },
-    { path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', family: 'DejaVu Sans' },
-    { path: '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', family: 'Liberation Sans' },
-    { path: '/usr/share/fonts/truetype/freefont/FreeSans.ttf', family: 'FreeSans' },
-    { path: '/System/Library/Fonts/Apple Color Emoji.ttc', family: 'Apple Color Emoji' },
-    { path: '/System/Library/Fonts/Supplemental/Symbola.ttf', family: 'Symbola' },
-  ]
-
-  for (const font of emojiFonts) {
-    if (registerFontFile(font.path, font.family, { source: 'system-emoji' })) {
+    if (registerFontFile(font.path, font.family, { weight: font.weight, style: font.style, source: 'system' })) {
       if (!fontInfoList.find(f => f.name === font.family)) {
         fontInfoList.push({
           name: font.family,
           family: font.family,
           path: font.path,
-          source: 'system-emoji',
-          isEmoji: true,
+          source: 'system',
+          isEmoji: isEmojiFont(font.family),
         })
       }
-      if (font.family === 'Noto Color Emoji' && registeredFonts.has('Noto Color Emoji')) {
+    }
+  }
+
+  // 3. 如果没有默认字体，尝试从系统字体中选择
+  if (!defaultFont.path) {
+    // 优先选择支持中文的系统字体
+    const chineseFontCandidates = ['Microsoft YaHei', 'SimHei', 'PingFang SC', 'Noto Sans CJK SC', 'Source Han Sans CN']
+
+    for (const candidate of chineseFontCandidates) {
+      if (registeredFonts.has(candidate)) {
+        const info = registeredFonts.get(candidate)
+        defaultFont = {
+          name: candidate,
+          family: candidate,
+          path: info.path,
+          weight: 'normal',
+          style: 'normal',
+          isDefault: true,
+          source: 'system',
+        }
+        console.log(`[poster] 设为默认字体: ${candidate}`)
         break
       }
     }
   }
-  
-  // 刷新字体列表
+
+  // 4. 确保有回退字体
+  const fallbackFonts = [
+    { family: 'Arial', weight: 'normal', path: 'C:\\Windows\\Fonts\\arial.ttf' },
+    { family: 'Helvetica', weight: 'normal', path: '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf' },
+  ]
+
+  for (const fb of fallbackFonts) {
+    if (!registeredFonts.has(fb.family) && fs.existsSync(fb.path)) {
+      registerFontFile(fb.path, fb.family, { weight: fb.weight, source: 'fallback' })
+    }
+  }
+
+  // 5. 最终回退
+  if (!registeredFonts.has('sans-serif')) {
+    registeredFonts.set('sans-serif', {
+      name: 'sans-serif',
+      family: 'sans-serif',
+      path: null,
+      isDefault: false,
+      source: 'fallback',
+    })
+  }
+
+  if (!defaultFont.path) {
+    defaultFont = {
+      name: 'sans-serif',
+      family: 'sans-serif',
+      path: null,
+      weight: 'normal',
+      style: 'normal',
+      isDefault: true,
+      source: 'fallback',
+    }
+  }
+
+  // 打印注册结果
+  console.log(`[poster] 字体注册完成，共 ${registeredFonts.size} 个字体`)
+  console.log(`[poster] 默认字体: ${defaultFont.name} (${defaultFont.source})`)
+
+  // 打印中文字体列表
+  const cjkFonts = Array.from(registeredFonts.keys()).filter(f =>
+    f.includes('CJK') || f.includes('Han') || f.includes('YaHei') ||
+    f.includes('Hei') || f.includes('Song') || f.includes('Kai') ||
+    f.includes('Fang') || f.includes('Yuan') || f.includes('PingFang')
+  )
+  if (cjkFonts.length > 0) {
+    console.log(`[poster] 已注册 CJK 字体: ${cjkFonts.join(', ')}`)
+  }
+
   refreshFontList()
 }
 
@@ -413,38 +505,28 @@ function refreshFontList() {
  */
 function validateFont(fontFamily) {
   if (!fontFamily) return defaultFont.name
-  
-  // 首先检查是否直接注册
+
+  // 直接匹配
   if (registeredFonts.has(fontFamily)) return fontFamily
-  
-  // 检查别名映射
-  if (chineseFontMappings[fontFamily]) {
-    const mappedFont = chineseFontMappings[fontFamily]
-    // 如果映射的目标字体已注册
-    if (registeredFonts.has(mappedFont)) {
-      return mappedFont
-    }
+
+  // 别名映射
+  const mapped = chineseFontMappings[fontFamily]
+  if (mapped && registeredFonts.has(mapped)) {
+    return mapped
   }
-  
+
   // 大小写不敏感匹配
   const lower = fontFamily.toLowerCase()
   for (const [name] of registeredFonts) {
     if (name.toLowerCase() === lower) return name
   }
-  
-  // 别名的模糊匹配
-  for (const [alias, target] of Object.entries(chineseFontMappings)) {
-    if (alias.toLowerCase() === lower && registeredFonts.has(target)) {
-      return target
-    }
-  }
-  
-  // 如果请求的是中文相关字体但没有精确匹配，尝试返回合适的中文字体
+
+  // 如果请求的是中文，尝试返回中文字体
   if (/[\u4e00-\u9fff]/.test(fontFamily) || isCommonChineseFontName(fontFamily)) {
-    // 返回默认中文字体
-    if (registeredFonts.has('Microsoft YaHei')) return 'Microsoft YaHei'
-    if (registeredFonts.has('Noto Sans CJK SC')) return 'Noto Sans CJK SC'
-    if (registeredFonts.has('Source Han Sans CN')) return 'Source Han Sans CN'
+    const chineseFonts = ['Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans CJK SC']
+    for (const cf of chineseFonts) {
+      if (registeredFonts.has(cf)) return cf
+    }
   }
 
   return defaultFont.name
@@ -456,23 +538,22 @@ function validateFont(fontFamily) {
 function isCommonChineseFontName(name) {
   if (!name) return false
   const lower = name.toLowerCase()
-  const chineseFontKeywords = [
+  const keywords = [
     'hei', 'song', 'kai', 'fang', 'yuan', '仿', '宋', '楷', '黑', '圆',
     '微软', '思源', 'noto', 'source', 'wqy', '文泉', 'pingfang', 'hiragino'
   ]
-  return chineseFontKeywords.some(kw => lower.includes(kw.toLowerCase()))
+  return keywords.some(kw => lower.includes(kw.toLowerCase()))
 }
 
 /**
- * 获取已注册字体列表（详细信息）
+ * 获取已注册字体列表
  */
 function listAllFonts() {
   refreshFontList()
-  
-  // 按类型分组
+
   const regularFonts = fontInfoList.filter(f => !f.isEmoji)
   const emojiFonts = fontInfoList.filter(f => f.isEmoji)
-  
+
   return {
     success: true,
     default: defaultFont,
@@ -484,67 +565,110 @@ function listAllFonts() {
 }
 
 /**
- * 获取默认字体（详细信息对象）
+ * 获取默认字体
  */
 function getDefaultFont() {
   return { ...defaultFont }
 }
 
 /**
- * 获取默认字体名称（字符串，用于兼容）
+ * 获取默认字体名称
  */
 function getDefaultFontFamily() {
   return defaultFont.name
 }
 
 /**
- * 获取字体 fallback 列表
+ * 获取字体 fallback 链
+ * @napi-rs/canvas 支持逗号分隔的字体链
  */
-function getFontFallbackChain(primaryFont) {
+function getFontFallbackChain(primaryFont, text = '') {
   const chain = []
-  const validated = validateFont(primaryFont)
-  
-  // 添加主字体
-  if (validated && validated !== defaultFont.name) {
+  const validated = validateFont(primaryFont || defaultFont.name)
+
+  // 主字体
+  if (validated && validated !== 'sans-serif') {
     chain.push(validated)
   }
-  
-  // 添加默认字体
-  if (!chain.includes(defaultFont.name)) {
-    chain.push(defaultFont.name)
-  }
-  
-  // 根据是否包含中文添加中文字体
-  if (primaryFont && /[\u4e00-\u9fff]/.test(primaryFont)) {
-    const chineseFonts = ['Microsoft YaHei', 'SimHei', 'SimSun', 'Noto Sans CJK SC']
+
+  // 检查文本是否包含中文或 emoji
+  const hasChinese = /[\u4e00-\u9fff]/.test(text || primaryFont || '')
+  const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(text || '')
+
+  // 中文字体优先级
+  if (hasChinese) {
+    const chineseFonts = ['Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans CJK SC', 'SimSun']
     for (const cf of chineseFonts) {
       if (!chain.includes(cf) && registeredFonts.has(cf)) {
         chain.push(cf)
       }
     }
   }
-  
-  // 添加通用字体族
-  const genericFonts = ['sans-serif', 'serif', 'monospace', 'Arial', 'Helvetica']
-  for (const gf of genericFonts) {
-    if (!chain.includes(gf) && (registeredFonts.has(gf) || gf === 'sans-serif')) {
-      chain.push(gf)
+
+  // Emoji 字体优先级
+  if (hasEmoji) {
+    const emojiFontList = ['Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Noto Emoji', 'Symbola']
+    for (const ef of emojiFontList) {
+      if (!chain.includes(ef) && registeredFonts.has(ef)) {
+        chain.unshift(ef) // emoji 字体放最前面
+      }
     }
   }
-  
+
+  // 添加默认字体（如果不在链中）
+  if (!chain.includes(defaultFont.name)) {
+    chain.push(defaultFont.name)
+  }
+
+  // 添加通用字体族作为最终回退
+  const genericFallbacks = ['sans-serif', 'serif', 'monospace']
+  for (const fb of genericFallbacks) {
+    if (!chain.includes(fb) && registeredFonts.has(fb)) {
+      chain.push(fb)
+    }
+  }
+
   return chain
+}
+
+/**
+ * 使用 @napi-rs/canvas 匹配字体（用于文本度量）
+ */
+function matchFont(text, fontFamily) {
+  if (!GlobalFonts) return fontFamily || defaultFont.name
+
+  try {
+    // GlobalFonts.matchFont 可以在没有精确字体时返回最接近的匹配
+    const matched = GlobalFonts.matchFont(text, fontFamily)
+    return matched || fontFamily || defaultFont.name
+  } catch (e) {
+    return fontFamily || defaultFont.name
+  }
+}
+
+/**
+ * 获取所有已注册的字体家族
+ */
+function getFontFamilies() {
+  if (GlobalFonts && GlobalFonts.families) {
+    return GlobalFonts.families
+  }
+  return Array.from(registeredFonts.keys())
 }
 
 // 初始化
 initFonts()
 
 module.exports = {
+  init: initFonts,
   registerFontFile,
   validateFont,
   listAllFonts,
   getDefaultFont,
   getDefaultFontFamily,
   getFontFallbackChain,
+  getFontFamilies,
+  matchFont,
   isEmojiFont,
   getRegisteredFonts: () => Array.from(registeredFonts.keys()),
 }

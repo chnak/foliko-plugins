@@ -4,17 +4,17 @@
   "description": "海报/Banner 设计插件 - 基于 Paper.js 实现，支持 35 个组件",
   "main": "index.js",
   "dependencies": {
-    "canvas": "^3.2.0",
+    "canvas": "npm:@napi-rs/canvas@latest",
     "fontkit": "^2.0.4",
     "jsdom": "^16.2.2",
     "paper": "^0.12.18",
     "qrcode": "^1.5.4"
   },
   "overrides": {
-    "canvas": "^3.2.0"
+    "canvas": "npm:@napi-rs/canvas@latest"
   },
   "resolutions": {
-    "**/canvas": "^3.2.0"
+    "**/canvas": "npm:@napi-rs/canvas@latest"
   },
   "author": "",
   "license": "MIT",
