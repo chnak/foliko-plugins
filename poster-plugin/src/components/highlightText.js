@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建高亮文字
@@ -30,7 +31,7 @@ function createHighlightText(project, args) {
     point: [x, y + fontSize],
     content: text,
     fontSize,
-    fontFamily: fontFamily || 'sans-serif',
+    fontFamily: getFontFallbackChain(fontFamily, text).join(', '),
     fillColor: new paper.Color(color),
     justification: 'left',
   })

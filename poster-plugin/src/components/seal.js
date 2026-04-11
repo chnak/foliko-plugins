@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建印章
@@ -70,11 +71,12 @@ function createSeal(project, args) {
   items.push(innerBorder)
 
   // 文字
+  const mainFont = getFontFallbackChain(fontFamily, text).join(', ')
   const textItem = new paper.PointText({
     point: [centerX, centerY + fontSize / 3],
     content: text,
     fontSize,
-    fontFamily: fontFamily || 'serif',
+    fontFamily: mainFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
@@ -87,7 +89,7 @@ function createSeal(project, args) {
     point: [centerX, centerY - size / 4],
     content: '★',
     fontSize: 16,
-    fontFamily: fontFamily || 'serif',
+    fontFamily: mainFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
@@ -99,7 +101,7 @@ function createSeal(project, args) {
     point: [centerX, centerY + size / 3],
     content: '★ ★ ★',
     fontSize: 12,
-    fontFamily: fontFamily || 'serif',
+    fontFamily: mainFont,
     fillColor: new paper.Color(color),
     justification: 'center',
     letterSpacing: 8,

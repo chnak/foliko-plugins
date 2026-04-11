@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建丝带
@@ -26,6 +27,9 @@ function createRibbon(project, args) {
   } = args
 
   const items = []
+
+  // 获取字体回退链
+  const ribbonFont = getFontFallbackChain(fontFamily, text).join(', ')
 
   if (style === 'diagonal') {
     // 对角丝带
@@ -59,7 +63,7 @@ function createRibbon(project, args) {
       point: [x + diagonalLength / 2, y + 60 / 2 + fontSize / 3],
       content: text,
       fontSize,
-      fontFamily: fontFamily || 'sans-serif',
+      fontFamily: ribbonFont,
       fillColor: new paper.Color(color),
       justification: 'center',
     })
@@ -112,17 +116,17 @@ function createRibbon(project, args) {
     items.push(fold)
 
     // 文字
-    const textItem = new paper.PointText({
+    const cornerTextItem = new paper.PointText({
       point: [x + ribbonWidth / 2, y + ribbonHeight / 2 + fontSize / 3],
       content: text,
       fontSize,
-      fontFamily: fontFamily || 'sans-serif',
+      fontFamily: ribbonFont,
       fillColor: new paper.Color(color),
       justification: 'center',
     })
 
-    if (opacity !== 1) textItem.opacity = opacity
-    items.push(textItem)
+    if (opacity !== 1) cornerTextItem.opacity = opacity
+    items.push(cornerTextItem)
 
   } else {
     // 折叠丝带 (默认)
@@ -170,17 +174,17 @@ function createRibbon(project, args) {
     items.push(rightFold)
 
     // 文字
-    const textItem = new paper.PointText({
+    const foldTextItem = new paper.PointText({
       point: [x + width / 2, y + ribbonHeight / 2 + fontSize / 3],
       content: text,
       fontSize,
-      fontFamily: fontFamily || 'sans-serif',
+      fontFamily: ribbonFont,
       fillColor: new paper.Color(color),
       justification: 'center',
     })
 
-    if (opacity !== 1) textItem.opacity = opacity
-    items.push(textItem)
+    if (opacity !== 1) foldTextItem.opacity = opacity
+    items.push(foldTextItem)
   }
 
   return {

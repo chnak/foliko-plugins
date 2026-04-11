@@ -9,6 +9,7 @@ const canvas = require('canvas')
 // 导入 @napi-rs/canvas 原生 API
 let GlobalFonts = null
 try {
+  
   GlobalFonts = canvas.GlobalFonts
 } catch (e) {
   console.warn('[poster] @napi-rs/canvas 未安装，字体注册可能受限')

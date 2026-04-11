@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建水印组件
@@ -14,7 +15,7 @@ function createWatermark(project, canvas, params) {
     cy,
     color = 'rgba(0,0,0,0.1)',
     fontSize = 48,
-    fontFamily = 'sans-serif',
+    fontFamily = 'Microsoft YaHei',
     opacity = 0.1,
     rotation = 0,
     align = 'center'
@@ -22,11 +23,12 @@ function createWatermark(project, canvas, params) {
 
   const elements = []
 
+  const finalFont = getFontFallbackChain(fontFamily, text).join(', ')
   const label = new paper.PointText({
     point: [cx, cy],
     content: text,
     fontSize: fontSize,
-    fontFamily: fontFamily,
+    fontFamily: finalFont,
     fillColor: new paper.Color(color),
     justification: align,
     opacity: opacity

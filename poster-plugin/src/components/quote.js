@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain } = require('../fonts')
 
 /**
  * 手动实现文本自动换行
@@ -84,15 +85,18 @@ function createQuote(project, canvas, args) {
     textColor = '#1e293b',
     authorColor = '#64748b',
     fontSize = 18,
-    fontFamily = 'Noto Serif SC, STSong, SimSun',
+    fontFamily,
   } = args
+
+  // 获取字体回退链
+  const quoteFont = getFontFallbackChain(fontFamily, text || '').join(', ')
 
   const elements = []
   
   // 计算文本换行
   const textPadding = padding + 30 // 左边距 + 引号宽度
   const maxTextWidth = width - textPadding - padding
-  const textLines = wrapText(text, maxTextWidth, fontSize, fontFamily)
+  const textLines = wrapText(text, maxTextWidth, fontSize, quoteFont)
   const lineHeight = fontSize * 1.5
   const textBlockHeight = textLines.length * lineHeight
   
@@ -124,7 +128,7 @@ function createQuote(project, canvas, args) {
     point: [x + padding + 10, y + padding + fontSize],
     content: '"',
     fontSize: fontSize * 2,
-    fontFamily: fontFamily,
+    fontFamily: quoteFont,
     fillColor: new paper.Color(borderColor),
     justification: 'left',
   })
@@ -137,7 +141,7 @@ function createQuote(project, canvas, args) {
       point: [x + padding + 30, lineY],
       content: line,
       fontSize: fontSize,
-      fontFamily: fontFamily,
+      fontFamily: quoteFont,
       fillColor: new paper.Color(textColor),
       justification: 'left',
     })
@@ -147,11 +151,12 @@ function createQuote(project, canvas, args) {
   // 绘制作者
   if (author) {
     const authorY = y + padding + textBlockHeight + fontSize * 1.3
+    const authorFont = getFontFallbackChain(fontFamily, author).join(', ')
     const authorText = new paper.PointText({
       point: [x + padding, authorY],
       content: `— ${author}`,
       fontSize: fontSize * 0.85,
-      fontFamily: fontFamily,
+      fontFamily: authorFont,
       fillColor: new paper.Color(authorColor),
       justification: 'left',
     })

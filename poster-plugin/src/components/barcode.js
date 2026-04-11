@@ -4,6 +4,7 @@
 
 const paper = require('paper')
 const { loadImageAsRaster, downloadImage } = require('../utils/imageLoader')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建条形码
@@ -33,11 +34,12 @@ async function createBarcode(project, args) {
 
     // 文字
     if (showText) {
+      const barcodeFont = getFontFallbackChain('monospace', content).join(', ')
       const textItem = new paper.PointText({
         point: [x + width / 2, y + height + fontSize + 5],
         content: content,
         fontSize,
-        fontFamily: 'monospace',
+        fontFamily: barcodeFont,
         fillColor: new paper.Color(textColor),
         justification: 'center',
       })
@@ -98,11 +100,12 @@ function createSimpleBarcode(project, args) {
 
   // 文字
   if (showText) {
+    const simpleBarcodeFont = getFontFallbackChain('monospace', content).join(', ')
     const textItem = new paper.PointText({
       point: [x + width / 2, y + barHeight + fontSize + 3],
       content: content,
       fontSize,
-      fontFamily: 'monospace',
+      fontFamily: simpleBarcodeFont,
       fillColor: new paper.Color(textColor),
       justification: 'center',
     })

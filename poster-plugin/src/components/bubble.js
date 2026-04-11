@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建对话气泡
@@ -115,7 +116,7 @@ function createBubble(project, args) {
     point: [bubbleX + padding, bubbleY + bubbleHeight / 2 + fontSize / 3],
     content: text,
     fontSize,
-    fontFamily: fontFamily || 'sans-serif',
+    fontFamily: getFontFallbackChain(fontFamily, text).join(', '),
     fillColor: new paper.Color(color),
     justification: tailPosition === 'left' ? 'left' : tailPosition === 'right' ? 'right' : 'center',
   })
@@ -130,7 +131,7 @@ function createBubble(project, args) {
     let currentLine = ''
     for (const char of text) {
       currentLine += char
-      const testText = new paper.PointText({ content: currentLine, fontSize, fontFamily: fontFamily || 'sans-serif' })
+      const testText = new paper.PointText({ content: currentLine, fontSize, fontFamily: getFontFallbackChain(fontFamily, currentLine).join(', ') })
       if (testText.bounds.width > maxTextWidth) {
         lines.push(currentLine.slice(0, -1))
         currentLine = char

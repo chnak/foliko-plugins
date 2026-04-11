@@ -4,6 +4,7 @@
 
 const paper = require('paper')
 const { loadImageAsRaster } = require('../utils/imageLoader')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建按钮
@@ -141,7 +142,7 @@ async function createButton(project, args) {
     point: [textX, textY],
     content: textStr,
     fontSize: fontSize,
-    fontFamily: fontFamily || 'sans-serif',
+    fontFamily: getFontFallbackChain(fontFamily, textStr).join(', '),
     fillColor: new paper.Color(color),
     justification: 'center',
   })
