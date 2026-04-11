@@ -28,6 +28,9 @@ const {
 
 // 字体管理
 const { listAllFonts, getDefaultFont, getDefaultFontFamily, isEmojiFont } = require('./fonts')
+
+// 布局管理
+const LayoutManager = require('./layout-manager')
 const {
   createCard,
   createBadge,
@@ -66,17 +69,85 @@ const {
   createBarcode,
 } = require('./components')
 
+// 生成唯一ID
+function generateCanvasId() {
+  return `canvas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
 module.exports = function (Plugin) {
   return class PosterPlugin extends Plugin {
     constructor(config = {}) {
       super()
       this.name = 'poster'
-      this.version = '1.1.0'
+      this.version = '1.2.2'
       this.description = '海报制作插件 - 支持组件化海报生成'
       this.priority = 15
 
       this._framework = null
-      this._canvasManager = new CanvasManager()
+      // 画布池：支持多画布并行制作
+      this._canvasPool = new Map()
+      // 布局池：每个画布对应一个布局管理器
+      this._layoutPool = new Map()
+      // 当前活跃画布ID
+      this._activeCanvasId = null
+    }
+
+    /**
+     * 获取或创建当前画布
+     */
+    _getActiveCanvas() {
+      if (this._activeCanvasId) {
+        const canvas = this._canvasPool.get(this._activeCanvasId)
+        if (canvas) return canvas
+      }
+      // 如果没有活跃画布，创建一个默认的
+      const id = generateCanvasId()
+      const canvas = new CanvasManager()
+      this._canvasPool.set(id, canvas)
+      this._activeCanvasId = id
+      return canvas
+    }
+
+    /**
+         * 根据ID获取画布
+         * @param {string} id - 画布ID
+         * @returns {CanvasManager} 画布实例
+         */
+        _getCanvasById(id) {
+          if (id) {
+            const canvas = this._canvasPool.get(id)
+            if (!canvas) {
+              throw new Error(`Canvas not found: ${id}`)
+            }
+            return canvas
+          }
+          return this._getActiveCanvas()
+        }
+
+        /**
+         * 根据画布ID获取布局管理器
+         * @param {string} id - 画布ID
+         * @returns {LayoutManager} 布局管理器实例
+         */
+        _getLayoutByCanvasId(id) {
+          const layout = id ? this._layoutPool.get(id) : this._layoutPool.get(this._activeCanvasId)
+          if (!layout) {
+            throw new Error(`Layout not found for canvas: ${id || this._activeCanvasId}`)
+          }
+          return layout
+        }
+    
+    /**
+     * 创建新画布并激活
+     */
+    _createAndActivateCanvas() {
+      const id = generateCanvasId()
+      const canvas = new CanvasManager()
+      const layout = new LayoutManager(null, { width: 0, height: 0 })
+      this._canvasPool.set(id, canvas)
+      this._layoutPool.set(id, layout)
+      this._activeCanvasId = id
+      return { id, canvas, layout }
     }
 
     
@@ -84,6 +155,190 @@ module.exports = function (Plugin) {
     // ==================== 工具定义 ====================
 
     tools = {
+      // ==================== 画布池管理（新增） ====================
+
+      /**
+       * 创建新画布（返回画布ID）
+       */
+      create_poster_canvas: {
+        description: '创建新画布，支持预设尺寸或自定义尺寸。每次调用创建独立的画布，支持多海报并行制作',
+        inputSchema: z.object({
+          preset: z.string().optional().describe('预设尺寸key'),
+          width: z.number().optional().describe('自定义宽度'),
+          height: z.number().optional().describe('自定义高度'),
+          background: z.union([z.string(), z.object({
+            image: z.string()
+          })]).optional().describe('背景颜色或图片路径'),
+          asNew: z.boolean().optional().describe('是否强制创建新画布（默认true）'),
+        }),
+        execute: async (args) => {
+          try {
+            // 始终创建新画布，支持并行制作
+            const { id, canvas, layout } = this._createAndActivateCanvas()
+            const result = await canvas.create(args)
+            // 初始化布局管理器
+            layout.project = canvas.getProject()
+            layout.width = result.width
+            layout.height = result.height
+            return {
+              success: true,
+              id,           // 新增：返回画布ID
+              ...result
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 获取画布信息
+       */
+      get_poster_canvas_info: {
+        description: '获取当前画布信息',
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则获取当前活跃画布'),
+        }),
+        execute: async (args) => {
+          let canvas
+          if (args.id) {
+            canvas = this._canvasPool.get(args.id)
+            if (!canvas) {
+              return { success: false, error: `Canvas not found: ${args.id}` }
+            }
+          } else {
+            canvas = this._getActiveCanvas()
+          }
+          
+          if (!canvas.isCreated()) {
+            return { success: false, error: 'No canvas created' }
+          }
+          const size = canvas.getSize()
+          return {
+            success: true,
+            id: args.id || this._activeCanvasId,
+            ...size,
+            elementCount: canvas.getElementCount(),
+          }
+        },
+      },
+
+      /**
+       * 切换活跃画布
+       */
+      use_poster_canvas: {
+        description: '切换到指定画布，使其成为当前活跃画布',
+        inputSchema: z.object({
+          id: z.string().describe('画布ID'),
+        }),
+        execute: async (args) => {
+          const canvas = this._canvasPool.get(args.id)
+          if (!canvas) {
+            return { success: false, error: `Canvas not found: ${args.id}` }
+          }
+          this._activeCanvasId = args.id
+          const size = canvas.getSize()
+          return {
+            success: true,
+            id: args.id,
+            message: 'Canvas activated',
+            ...size,
+            elementCount: canvas.getElementCount(),
+          }
+        },
+      },
+
+      /**
+       * 列出所有画布
+       */
+      list_poster_canvases: {
+        description: '列出所有已创建的画布',
+        inputSchema: z.object({}),
+        execute: async () => {
+          const canvases = []
+          for (const [id, canvas] of this._canvasPool.entries()) {
+            canvases.push({
+              id,
+              isActive: id === this._activeCanvasId,
+              isCreated: canvas.isCreated(),
+              ...(canvas.isCreated() ? canvas.getSize() : {}),
+              elementCount: canvas.isCreated() ? canvas.getElementCount() : 0,
+            })
+          }
+          return {
+            success: true,
+            canvases,
+            total: canvases.length,
+            activeId: this._activeCanvasId,
+          }
+        },
+      },
+
+      /**
+       * 销毁画布
+       */
+      destroy_poster_canvas: {
+        description: '销毁指定画布，释放内存',
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则销毁当前活跃画布'),
+        }),
+        execute: async (args) => {
+          const id = args.id || this._activeCanvasId
+          if (!this._canvasPool.has(id)) {
+            return { success: false, error: `Canvas not found: ${id}` }
+          }
+          const canvas = this._canvasPool.get(id)
+          canvas.reset()
+          this._canvasPool.delete(id)
+          // 同时删除布局管理器
+          this._layoutPool.delete(id)
+          
+          // 如果销毁的是活跃画布，切换到其他画布
+          if (id === this._activeCanvasId) {
+            const remaining = Array.from(this._canvasPool.keys())
+            this._activeCanvasId = remaining.length > 0 ? remaining[remaining.length - 1] : null
+          }
+          
+          return {
+            success: true,
+            message: `Canvas ${id} destroyed`,
+            activeId: this._activeCanvasId,
+          }
+        },
+      },
+
+      /**
+       * 清除画布
+       */
+      clear_poster_canvas: {
+        description: '清除画布上的所有元素',
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则清除当前活跃画布'),
+        }),
+        execute: async (args) => {
+          let canvas
+          if (args.id) {
+            canvas = this._canvasPool.get(args.id)
+            if (!canvas) {
+              return { success: false, error: `Canvas not found: ${args.id}` }
+            }
+          } else {
+            canvas = this._getActiveCanvas()
+          }
+          
+          if (!canvas.isCreated()) {
+            return { success: false, error: 'No canvas created' }
+          }
+          canvas.clear()
+          // 同时清除布局管理器记录
+          const layout = this._layoutPool.get(args.id || this._activeCanvasId)
+          if (layout) {
+            layout.clear()
+          }
+          return { success: true, message: 'Canvas cleared' }
+        },
+      },
+
       // ==================== 画布管理 ====================
 
       /**
@@ -96,6 +351,180 @@ module.exports = function (Plugin) {
           success: true,
           presets: Object.entries(PRESETS).map(([key, value]) => ({ key, ...value })),
         }),
+      },
+
+      // ==================== 布局管理 ====================
+
+      /**
+       * 获取布局信息
+       */
+      get_poster_layout: {
+        description: `获取当前画布的布局信息，包括所有元素边界、位置、重叠检测等。
+使用工作流：
+1. 创建画布后，定期调用检查布局问题
+2. 返回的 issues 数组包含所有检测到的问题
+3. recommendations 包含修复建议
+
+返回数据结构：
+- bounds: 所有元素的边界信息 [{id, type, bounds: {x, y, width, height}}]
+- issues: 问题列表 [{type, elementId, message, suggestion}]
+- recommendations: 修复建议列表`,
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则获取当前活跃画布'),
+        }),
+        execute: async (args) => {
+          try {
+            const canvas = this._getCanvasById(args.id)
+            if (!canvas.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            const layout = this._getLayoutByCanvasId(args.id)
+            // 更新布局的project引用
+            layout.project = canvas.getProject()
+            const report = layout.generateLayoutReport()
+            return {
+              success: true,
+              ...report
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 检测布局重叠
+       */
+      check_poster_overlap: {
+        description: `在添加新元素前，检测是否会与现有元素重叠。
+使用工作流：
+1. 计算新元素的位置和尺寸
+2. 调用此工具检测重叠
+3. 如果 hasOverlap=true，使用 get_poster_position 获取推荐位置
+4. 或调整位置/尺寸后重新检测
+
+参数说明：
+- x, y: 新元素左上角坐标
+- width, height: 新元素尺寸
+- margin: 元素间的最小间距（默认10px）`,
+        inputSchema: z.object({
+          x: z.number().describe('新元素X坐标'),
+          y: z.number().describe('新元素Y坐标'),
+          width: z.number().describe('新元素宽度'),
+          height: z.number().describe('新元素高度'),
+          margin: z.number().optional().describe('检测边距，默认10'),
+          id: z.string().optional().describe('画布ID'),
+        }),
+        execute: async (args) => {
+          try {
+            const canvas = this._getCanvasById(args.id)
+            if (!canvas.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            const layout = this._getLayoutByCanvasId(args.id)
+            layout.project = canvas.getProject()
+            const newBounds = {
+              x: args.x,
+              y: args.y,
+              width: args.width,
+              height: args.height
+            }
+            const result = layout.checkOverlap(newBounds, args.margin || 10)
+            return {
+              success: true,
+              ...result
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 获取推荐位置
+       */
+      get_poster_position: {
+        description: `根据布局提示获取新元素的推荐位置，避免重叠。
+使用工作流：
+1. 确定新元素的尺寸
+2. 选择合适的布局提示 hint
+3. 使用返回的 position 作为元素的 x, y 坐标
+
+布局提示说明：
+- below: 在所有元素下方依次排列（默认）
+- center: 画布居中
+- top: 在顶部元素上方
+- right: 在最右边元素右侧
+- left: 在最左边元素左侧
+- grid: 自动网格布局
+- random: 安全区域内随机位置`,
+        inputSchema: z.object({
+          width: z.number().describe('元素宽度'),
+          height: z.number().describe('元素高度'),
+          hint: z.enum(['below', 'center', 'top', 'right', 'left', 'grid', 'random']).optional().describe('布局提示'),
+          margin: z.number().optional().describe('边距，默认20'),
+          id: z.string().optional().describe('画布ID'),
+        }),
+        execute: async (args) => {
+          try {
+            const canvas = this._getCanvasById(args.id)
+            if (!canvas.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            const layout = this._getLayoutByCanvasId(args.id)
+            layout.project = canvas.getProject()
+            const position = layout.getRecommendedPosition(
+              args.width,
+              args.height,
+              args.hint || 'below',
+              args.margin || 20
+            )
+            return {
+              success: true,
+              position
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
+
+      /**
+       * 同步布局元素
+       */
+      sync_poster_layout: {
+        description: `同步当前画布元素到布局管理器。
+使用工作流：
+1. 添加/删除/移动元素后调用
+2. 后续的 check_overlap 和 get_position 会使用最新布局
+3. 建议在批量添加元素后调用一次，而不是每添加一个元素就调用
+
+注意：目前布局管理器直接从画布读取元素，此工具主要用于保持兼容性。`,
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID'),
+        }),
+        execute: async (args) => {
+          try {
+            const canvas = this._getCanvasById(args.id)
+            if (!canvas.isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            const layout = this._getLayoutByCanvasId(args.id)
+            layout.project = canvas.getProject()
+            // 重新获取所有元素边界
+            layout.elements = [] // 清空旧记录
+            const bounds = layout.getAllElementBounds()
+            for (const bound of bounds) {
+              layout.addElement(bound.bounds, bound.id, bound.type)
+            }
+            return {
+              success: true,
+              elementCount: bounds.length
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
       },
 
       // ==================== 字体管理 ====================
@@ -141,63 +570,6 @@ module.exports = function (Plugin) {
         },
       },
 
-      /**
-       * 创建画布
-       */
-      create_poster_canvas: {
-        description: '创建新画布，支持预设尺寸或自定义尺寸',
-        inputSchema: z.object({
-          preset: z.string().optional().describe('预设尺寸key'),
-          width: z.number().optional().describe('自定义宽度'),
-          height: z.number().optional().describe('自定义高度'),
-          background: z.union([z.string(), z.object({
-            image: z.string()
-          })]).optional().describe('背景颜色或图片路径'),
-        }),
-        execute: async (args) => {
-          try {
-            const result = await this._canvasManager.create(args)
-            return { success: true, ...result }
-          } catch (err) {
-            return { success: false, error: err.message }
-          }
-        },
-      },
-
-      /**
-       * 获取画布信息
-       */
-      get_poster_canvas_info: {
-        description: '获取当前画布信息',
-        inputSchema: z.object({}),
-        execute: async () => {
-          if (!this._canvasManager.isCreated()) {
-            return { success: false, error: 'No canvas created' }
-          }
-          const size = this._canvasManager.getSize()
-          return {
-            success: true,
-            ...size,
-            elementCount: this._canvasManager.getElementCount(),
-          }
-        },
-      },
-
-      /**
-       * 清除画布
-       */
-      clear_poster_canvas: {
-        description: '清除画布上的所有元素',
-        inputSchema: z.object({}),
-        execute: async () => {
-          if (!this._canvasManager.isCreated()) {
-            return { success: false, error: 'No canvas created' }
-          }
-          this._canvasManager.clear()
-          return { success: true, message: 'Canvas cleared' }
-        },
-      },
-
       // ==================== 基础元素 ====================
 
       /**
@@ -206,6 +578,7 @@ module.exports = function (Plugin) {
       add_poster_background: {
         description: '为画布添加纯色、渐变或图片背景',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           color: z.string().optional().describe('纯色背景'),
           gradient: z.object({
             type: z.enum(['linear', 'radial']).describe('渐变类型'),
@@ -216,12 +589,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await addBackground(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -236,6 +609,7 @@ module.exports = function (Plugin) {
       add_poster_rectangle: {
         description: '在画布上添加矩形',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -248,10 +622,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addRectangle(this._canvasManager.getProject(), args)
+            return addRectangle(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -264,6 +638,7 @@ module.exports = function (Plugin) {
       add_poster_circle: {
         description: '在画布上添加圆形或椭圆',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('圆心X坐标'),
           cy: z.number().describe('圆心Y坐标'),
           rx: z.number().describe('X轴半径'),
@@ -275,10 +650,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addCircle(this._canvasManager.getProject(), args)
+            return addCircle(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -291,6 +666,7 @@ module.exports = function (Plugin) {
       add_poster_line: {
         description: '在画布上添加线条',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x1: z.number().describe('起点X'),
           y1: z.number().describe('起点Y'),
           x2: z.number().describe('终点X'),
@@ -300,10 +676,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addLine(this._canvasManager.getProject(), args)
+            return addLine(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -316,6 +692,7 @@ module.exports = function (Plugin) {
       add_poster_polygon: {
         description: '在画布上添加多边形',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
           radius: z.number().describe('外接圆半径'),
@@ -327,10 +704,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addPolygon(this._canvasManager.getProject(), args)
+            return addPolygon(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -343,6 +720,7 @@ module.exports = function (Plugin) {
       add_poster_text: {
         description: '在画布上添加文字',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('文字内容'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -359,10 +737,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addText(this._canvasManager.getProject(), args)
+            return addText(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -375,6 +753,7 @@ module.exports = function (Plugin) {
       add_poster_art_text: {
         description: '添加艺术文字，支持渐变填充和描边',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('文字内容'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -395,10 +774,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addArtText(this._canvasManager.getProject(), args)
+            return addArtText(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -411,6 +790,7 @@ module.exports = function (Plugin) {
       add_poster_rich_text: {
         description: '添加富文本，支持旋转、描边、渐变、阴影等多种样式',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           // 位置和尺寸
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -471,10 +851,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addRichText(this._canvasManager.getProject(), args)
+            return addRichText(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -487,6 +867,7 @@ module.exports = function (Plugin) {
       add_poster_image: {
         description: '在画布上添加图片',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('图片路径或URL'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -496,10 +877,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return await addImage(this._canvasManager.getProject(), args)
+            return await addImage(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -514,6 +895,7 @@ module.exports = function (Plugin) {
       add_poster_svg: {
         description: '在画布上添加 SVG（支持文件路径或 SVG 字符串）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('SVG 文件路径或 SVG 字符串'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -523,10 +905,10 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            return addSVG(this._canvasManager.getProject(), args)
+            return addSVG(this._getCanvasById(args.id).getProject(), args)
           } catch (err) {
             return { success: false, error: err.message }
           }
@@ -539,12 +921,13 @@ module.exports = function (Plugin) {
       export_poster_svg: {
         description: '导出画布为 SVG 格式',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           filename: z.string().describe('文件名（不含扩展名）'),
           outputDir: z.string().optional().describe('输出目录'),
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
 
@@ -553,7 +936,7 @@ module.exports = function (Plugin) {
             await fs.promises.mkdir(outputDir, { recursive: true })
             const filepath = path.join(outputDir, filename)
 
-            const svg = this._canvasManager.getProject().exportSVG({
+            const svg = this._getCanvasById(args.id).getProject().exportSVG({
               asString: true,
               bounds: 'content',
             })
@@ -578,14 +961,16 @@ module.exports = function (Plugin) {
        */
       export_poster_svg_base64: {
         description: '导出画布为 SVG Base64 编码',
-        inputSchema: z.object({}),
-        execute: async () => {
+        inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+        }),
+        execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
 
-            const svg = this._canvasManager.getProject().exportSVG({
+            const svg = this._getCanvasById(args.id).getProject().exportSVG({
               asString: true,
               bounds: 'content',
             })
@@ -612,6 +997,7 @@ module.exports = function (Plugin) {
       add_poster_card: {
         description: '添加卡片组件（带背景、标题、副标题）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('卡片宽度'),
@@ -630,12 +1016,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createCard(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -650,6 +1036,7 @@ module.exports = function (Plugin) {
       add_poster_badge: {
         description: '添加徽章/标签组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('徽章文字'),
@@ -662,12 +1049,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createBadge(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -682,6 +1069,7 @@ module.exports = function (Plugin) {
       add_poster_cta: {
         description: '添加行动号召按钮',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('按钮文字'),
@@ -700,12 +1088,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createCTA(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -720,6 +1108,7 @@ module.exports = function (Plugin) {
       add_poster_feature: {
         description: '添加特性展示块',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -735,12 +1124,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createFeature(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -755,6 +1144,7 @@ module.exports = function (Plugin) {
       add_poster_feature_grid: {
         description: '添加特性网格布局',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           columns: z.number().optional().describe('列数，默认3'),
@@ -775,12 +1165,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createFeatureGrid(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -795,6 +1185,7 @@ module.exports = function (Plugin) {
       add_poster_divider: {
         description: '添加分隔线',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -805,12 +1196,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createDivider(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -825,6 +1216,7 @@ module.exports = function (Plugin) {
       add_poster_avatar: {
         description: '添加头像组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('圆心X坐标'),
           y: z.number().describe('圆心Y坐标'),
           size: z.number().optional().describe('头像大小'),
@@ -836,12 +1228,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createAvatar(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -856,6 +1248,7 @@ module.exports = function (Plugin) {
       add_poster_progress: {
         description: '添加进度条组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('进度条宽度'),
@@ -869,12 +1262,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createProgress(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -889,6 +1282,7 @@ module.exports = function (Plugin) {
       add_poster_rating: {
         description: '添加星级评分组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           value: z.number().optional().describe('评分值 0-5'),
@@ -900,12 +1294,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createRating(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -920,6 +1314,7 @@ module.exports = function (Plugin) {
       add_poster_quote: {
         description: '添加引用块组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -935,12 +1330,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createQuote(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -955,6 +1350,7 @@ module.exports = function (Plugin) {
       add_poster_stat_card: {
         description: '添加统计卡片组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -971,12 +1367,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createStatCard(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -991,6 +1387,7 @@ module.exports = function (Plugin) {
       add_poster_tag_cloud: {
         description: '添加标签云组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           tags: z.array(z.object({
@@ -1005,12 +1402,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createTagCloud(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1025,6 +1422,7 @@ module.exports = function (Plugin) {
       add_poster_stepper: {
         description: '添加步骤指示器组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('总宽度'),
@@ -1040,12 +1438,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createStepper(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1060,6 +1458,7 @@ module.exports = function (Plugin) {
       add_poster_timeline: {
         description: '添加时间线组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('总宽度'),
@@ -1076,12 +1475,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createTimeline(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1096,6 +1495,7 @@ module.exports = function (Plugin) {
       add_poster_list_item: {
         description: '添加列表项组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1112,12 +1512,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createListItem(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1132,6 +1532,7 @@ module.exports = function (Plugin) {
       add_poster_notification: {
         description: '添加通知提示组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1143,12 +1544,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createNotification(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1163,6 +1564,7 @@ module.exports = function (Plugin) {
       add_poster_image_frame: {
         description: '添加带装饰边框的图片框组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('图片路径或URL'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -1183,12 +1585,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createImageFrame(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1203,6 +1605,7 @@ module.exports = function (Plugin) {
       add_poster_columns: {
         description: '添加分栏布局组件（左右分栏、三栏等）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('起始X坐标'),
           y: z.number().describe('起始Y坐标'),
           width: z.number().describe('总宽度'),
@@ -1218,12 +1621,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createColumns(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1238,6 +1641,7 @@ module.exports = function (Plugin) {
       add_poster_grid: {
         description: '添加网格布局组件（任意行列）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('起始X坐标'),
           y: z.number().describe('起始Y坐标'),
           width: z.number().describe('总宽度'),
@@ -1254,12 +1658,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createGrid(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1274,6 +1678,7 @@ module.exports = function (Plugin) {
       add_poster_star: {
         description: '添加星形/多角形装饰',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
           points: z.number().optional().describe('星形点数，默认5'),
@@ -1287,11 +1692,11 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
-            const project = this._canvasManager.getProject()
-            const result = createStar(project, this._canvasManager.getCanvas(), args)
+            const project = this._getCanvasById(args.id).getProject()
+            const result = createStar(project, this._getCanvasById(args.id).getCanvas(), args)
             // 强制将所有子元素添加到活动层
             if (result && result.elements && project) {
               // 收集所有新创建的 item
@@ -1301,7 +1706,7 @@ module.exports = function (Plugin) {
               // 从项目的所有层中获取新添加的 item
               project.layers.forEach(layer => {
                 layer.children.forEach(item => {
-                  if (item.id && !existingIds.has(item.id) || item.parent === layer) {
+                  if ((item.id && !existingIds.has(item.id)) || (item.parent === layer)) {
                     if (item.parent !== project.activeLayer) {
                       project.activeLayer.addChild(item)
                     }
@@ -1322,6 +1727,7 @@ module.exports = function (Plugin) {
       add_poster_arrow: {
         description: '添加箭头指示',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x1: z.number().describe('起点X'),
           y1: z.number().describe('起点Y'),
           x2: z.number().describe('终点X'),
@@ -1334,16 +1740,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createArrow(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1364,6 +1770,7 @@ module.exports = function (Plugin) {
       add_poster_progress_circle: {
         description: '添加环形进度条组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('圆心X坐标'),
           cy: z.number().describe('圆心Y坐标'),
           radius: z.number().describe('圆环半径'),
@@ -1377,16 +1784,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createProgressCircle(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1407,6 +1814,7 @@ module.exports = function (Plugin) {
       add_poster_chip: {
         description: '添加小型信息标签组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('标签文字'),
@@ -1420,16 +1828,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createChip(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1450,6 +1858,7 @@ module.exports = function (Plugin) {
       add_poster_chart: {
         description: '添加图表组件（柱状图/饼图）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           type: z.enum(['bar', 'pie']).describe('图表类型'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -1466,16 +1875,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createChart(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1496,6 +1905,7 @@ module.exports = function (Plugin) {
       add_poster_watermark: {
         description: '添加水印文字',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('水印文字'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
@@ -1508,16 +1918,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createWatermark(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1538,6 +1948,7 @@ module.exports = function (Plugin) {
       add_poster_table: {
         description: '添加表格组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('表格宽度'),
@@ -1556,16 +1967,16 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             const result = createTable(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
-            if (result && result.elements && this._canvasManager.getProject()) {
-              const project = this._canvasManager.getProject()
+            if (result && result.elements && this._getCanvasById(args.id).getProject()) {
+              const project = this._getCanvasById(args.id).getProject()
               result.elements.forEach(el => {
                 if (el.id) {
                   const item = project.getItem({ id: el.id })
@@ -1586,6 +1997,7 @@ module.exports = function (Plugin) {
       add_poster_button: {
         description: '添加按钮组件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认200'),
@@ -1610,11 +2022,11 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createButton(
-              this._canvasManager.getProject(),
+              this._getCanvasById(args.id).getProject(),
               args
             )
           } catch (err) {
@@ -1629,6 +2041,7 @@ module.exports = function (Plugin) {
       add_poster_icon: {
         description: '添加图标（emoji或图片）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           size: z.number().optional().describe('图标大小，默认64'),
@@ -1648,11 +2061,11 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createIcon(
-              this._canvasManager.getProject(),
+              this._getCanvasById(args.id).getProject(),
               args
             )
           } catch (err) {
@@ -1679,12 +2092,12 @@ module.exports = function (Plugin) {
       //   }),
       //   execute: async (args) => {
       //     try {
-      //       if (!this._canvasManager.isCreated()) {
+      //       if (!this._getCanvasById(args.id).isCreated()) {
       //         return { success: false, error: 'No canvas created' }
       //       }
       //       return await createQRCode(
-      //         this._canvasManager.getProject(),
-      //         this._canvasManager.getCanvas(),
+      //         this._getCanvasById(args.id).getProject(),
+      //         this._getCanvasById(args.id).getCanvas(),
       //         args
       //       )
       //     } catch (err) {
@@ -1699,6 +2112,7 @@ module.exports = function (Plugin) {
       add_poster_frame: {
         description: '添加装饰边框',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -1712,12 +2126,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createFrame(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1732,6 +2146,7 @@ module.exports = function (Plugin) {
       add_poster_bubble: {
         description: '添加对话气泡',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认300'),
@@ -1755,12 +2170,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createBubble(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1775,6 +2190,7 @@ module.exports = function (Plugin) {
       add_poster_ribbon: {
         description: '添加丝带飘带',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认300'),
@@ -1795,12 +2211,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createRibbon(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1815,6 +2231,7 @@ module.exports = function (Plugin) {
       add_poster_seal: {
         description: '添加印章效果',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           size: z.number().optional().describe('印章大小，默认100'),
@@ -1827,12 +2244,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createSeal(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1847,6 +2264,7 @@ module.exports = function (Plugin) {
       add_poster_highlight_text: {
         description: '添加高亮文字（荧光笔效果）',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('文字内容'),
@@ -1865,12 +2283,12 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return await createHighlightText(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1898,12 +2316,12 @@ module.exports = function (Plugin) {
       //   }),
       //   execute: async (args) => {
       //     try {
-      //       if (!this._canvasManager.isCreated()) {
+      //       if (!this._getCanvasById(args.id).isCreated()) {
       //         return { success: false, error: 'No canvas created' }
       //       }
       //       return await createBarcode(
-      //         this._canvasManager.getProject(),
-      //         this._canvasManager.getCanvas(),
+      //         this._getCanvasById(args.id).getProject(),
+      //         this._getCanvasById(args.id).getCanvas(),
       //         args
       //       )
       //     } catch (err) {
@@ -1928,18 +2346,18 @@ module.exports = function (Plugin) {
               'card', 'badge', 'cta', 'feature', 'featureGrid', 'divider',
               'avatar', 'progress', 'rating', 'quote', 'statCard',
               'tagCloud', 'stepper', 'timeline', 'listItem', 'notification',
-              'button', 'icon', 'qrcode', 'frame', 'bubble', 'ribbon', 'seal', 'highlightText', 'barcode',
+              'button', 'icon', 'frame', 'bubble', 'ribbon', 'seal', 'highlightText',
             ]).describe('组件类型'),
           })).describe('组件配置数组'),
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
             return createFromConfig(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -1968,6 +2386,7 @@ module.exports = function (Plugin) {
       generate_poster: {
         description: '使用预设模板一键生成海报',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           template: z.enum(['modern', 'business', 'social', 'simple', 'tech', 'gradient']).describe('模板类型'),
           title: z.string().describe('主标题'),
           subtitle: z.string().optional().describe('副标题'),
@@ -1978,14 +2397,14 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
 
             // 应用模板
             applyTemplate(
-              this._canvasManager.getProject(),
-              this._canvasManager.getCanvas(),
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
               args.template,
               args
             )
@@ -1996,7 +2415,7 @@ module.exports = function (Plugin) {
             const filename = `${args.output}.${format}`
             await fs.promises.mkdir(outputDir, { recursive: true })
             const filepath = path.join(outputDir, filename)
-            const buffer = this._canvasManager.toBuffer(format)
+            const buffer = this._getCanvasById(args.id).toBuffer(format)
             await fs.promises.writeFile(filepath, buffer)
 
             return {
@@ -2031,6 +2450,7 @@ module.exports = function (Plugin) {
       export_poster_canvas: {
         description: '导出画布为图片文件',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           filename: z.string().describe('文件名（不含扩展名）'),
           format: z.enum(['png', 'jpg']).optional().describe('格式，默认png'),
           quality: z.number().optional().describe('JPEG质量'),
@@ -2038,7 +2458,7 @@ module.exports = function (Plugin) {
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
 
@@ -2047,7 +2467,7 @@ module.exports = function (Plugin) {
             const filename = `${args.filename}.${format}`
             await fs.promises.mkdir(outputDir, { recursive: true })
             const filepath = path.join(outputDir, filename)
-            const buffer = this._canvasManager.toBuffer(format, args.quality)
+            const buffer = this._getCanvasById(args.id).toBuffer(format, args.quality)
             await fs.promises.writeFile(filepath, buffer)
 
             return {
@@ -2069,17 +2489,18 @@ module.exports = function (Plugin) {
       export_poster_base64: {
         description: '导出画布为 Base64 编码',
         inputSchema: z.object({
+          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
           format: z.enum(['png', 'jpg']).optional().describe('格式'),
           quality: z.number().optional().describe('JPEG质量'),
         }),
         execute: async (args) => {
           try {
-            if (!this._canvasManager.isCreated()) {
+            if (!this._getCanvasById(args.id).isCreated()) {
               return { success: false, error: 'No canvas created' }
             }
 
             const format = args.format || 'png'
-            const base64 = this._canvasManager.toBase64(format, args.quality)
+            const base64 = this._getCanvasById(args.id).toBase64(format, args.quality)
             const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
 
             return {
@@ -2105,9 +2526,6 @@ module.exports = function (Plugin) {
     }
 
     start(framework) {
-      // Object.keys(this.all_tools).map(key=>{
-      //   this._framework.registerTool({...this.all_tools[key],name:key})
-      // })
       console.log('[poster] Poster plugin started')
     }
 
@@ -2118,7 +2536,12 @@ module.exports = function (Plugin) {
     }
 
     uninstall(framework) {
-      this._canvasManager.reset()
+      // 重置并清理所有画布
+      for (const [id, canvas] of this._canvasPool) {
+        canvas.reset()
+      }
+      this._canvasPool.clear()
+      this._layoutPool.clear()
       this._framework = null
       console.log('[poster] Poster plugin uninstalled')
     }

@@ -233,6 +233,10 @@ class CanvasManager {
    * 重置画布
    */
   reset() {
+    // 清理 Paper.js 项目
+    if (this._project) {
+      this._project.clear()
+    }
     this._canvas = null
     this._project = null
     this._paper = null

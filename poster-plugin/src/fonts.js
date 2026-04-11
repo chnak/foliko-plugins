@@ -230,7 +230,15 @@ function isEmojiFont(fontName) {
   return (
     lower.includes('emoji') ||
     lower.includes('color') ||
-    lower.includes('symbola')
+    lower.includes('symbola') ||
+    lower.includes('twemoji') ||
+    lower.includes('emojione') ||
+    lower.includes('joypixels') ||
+    lower.includes('noto') ||
+    lower.includes('apple') ||
+    lower.includes('segoe ui emoji') ||
+    lower.includes('twitter color emoji') ||
+    lower.includes('open sans emoji')
   )
 }
 
@@ -581,6 +589,7 @@ function getDefaultFontFamily() {
 /**
  * 获取字体 fallback 链
  * @napi-rs/canvas 支持逗号分隔的字体链
+ * emoji 字体始终在末尾，确保 emoji 能正确显示
  */
 function getFontFallbackChain(primaryFont, text = '') {
   const chain = []
@@ -591,14 +600,8 @@ function getFontFallbackChain(primaryFont, text = '') {
     chain.push(validated)
   }
 
-  // 检查文本是否包含中文或 emoji
+  // 中文字体（如果检测到中文）
   const hasChinese = /[\u4e00-\u9fff]/.test(text || primaryFont || '')
-  // 更全面的 emoji 检测（覆盖所有常见 emoji Unicode 范围）
-  const hasEmoji = /[\u{1F000}-\u{1F9FF}]/u.test(text || '') || 
-                   /[\u2600-\u26FF]/.test(text || '') || 
-                   /[\u2700-\u27BF]/.test(text || '')
-
-  // 中文字体优先级
   if (hasChinese) {
     const chineseFonts = ['Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans CJK SC', 'SimSun']
     for (const cf of chineseFonts) {
@@ -608,19 +611,18 @@ function getFontFallbackChain(primaryFont, text = '') {
     }
   }
 
-  // Emoji 字体优先级
-  if (hasEmoji) {
-    const emojiFontList = ['Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Noto Emoji', 'Symbola']
-    for (const ef of emojiFontList) {
-      if (!chain.includes(ef) && registeredFonts.has(ef)) {
-        chain.unshift(ef) // emoji 字体放最前面
-      }
-    }
-  }
-
   // 添加默认字体（如果不在链中）
   if (!chain.includes(defaultFont.name)) {
     chain.push(defaultFont.name)
+  }
+
+  // emoji 字体始终添加到末尾（确保 emoji 能显示）
+  const emojiFontList = ['Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Noto Emoji', 'Symbola', 'seguiemj']
+  for (const ef of emojiFontList) {
+    if (!chain.includes(ef) && registeredFonts.has(ef)) {
+      chain.push(ef)
+      break // 只加一个 emoji 字体
+    }
   }
 
   // 添加通用字体族作为最终回退
