@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建卡片组件
@@ -33,9 +34,13 @@ function createCard(project, canvas, args) {
     title, titleSize, titleColor,
     subtitle, subtitleSize, subtitleColor,
     padding = 20,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const cardFont = getFontFallbackChain(fontFamily, (title || '') + (subtitle || '')).join(', ')
 
   // 绘制卡片背景
   const card = new paper.Path.Rectangle({
@@ -63,6 +68,7 @@ function createCard(project, canvas, args) {
       point: [x + padding, y + padding + (titleSize || 24)],
       content: title,
       fontSize: titleSize || 24,
+      fontFamily: cardFont,
       fillColor: new paper.Color(titleColor || '#000000'),
       justification: 'left',
     })
@@ -76,6 +82,7 @@ function createCard(project, canvas, args) {
       point: [x + padding, y + titleHeight + (subtitleSize || 16) + 10],
       content: subtitle,
       fontSize: subtitleSize || 16,
+      fontFamily: cardFont,
       fillColor: new paper.Color(subtitleColor || '#666666'),
       justification: 'left',
     })

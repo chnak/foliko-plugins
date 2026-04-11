@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建环形进度条组件
@@ -19,10 +20,14 @@ function createProgressCircle(project, canvas, params) {
     backgroundColor,
     showLabel = true,
     labelColor,
-    startAngle = -90
+    startAngle = -90,
+    fontFamily,
   } = params
 
   const elements = []
+
+  // 获取字体回退链
+  const circleFont = getFontFallbackChain(fontFamily, String(value)).join(', ')
 
   // 绘制背景圆（可选）
   if (backgroundColor) {
@@ -97,6 +102,7 @@ function createProgressCircle(project, canvas, params) {
       point: [cx, cy + fontSize * 0.35],
       content: `${Math.round(value)}%`,
       fontSize: fontSize,
+      fontFamily: circleFont,
       fillColor: new paper.Color(textColor),
       justification: 'center',
       fontWeight: 'bold'

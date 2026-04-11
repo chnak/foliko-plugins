@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建 CTA 按钮
@@ -19,9 +20,13 @@ function createCTA(project, canvas, args) {
     radius = 8,
     shadow,
     width: customWidth,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const ctaFont = getFontFallbackChain(fontFamily, text).join(', ')
 
   // 确保 text 是字符串
   const textStr = String(text || '')
@@ -67,6 +72,7 @@ function createCTA(project, canvas, args) {
     point: [x, y + btnHeight / 2 + fontSize / 3],
     content: textStr,
     fontSize: fontSize,
+    fontFamily: ctaFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })

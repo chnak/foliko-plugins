@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建表格组件
@@ -22,10 +23,14 @@ function createTable(project, canvas, params) {
     fontSize = 12,
     headerFontSize = 13,
     striped = true,
-    stripeColor = '#fafafa'
+    stripeColor = '#fafafa',
+    fontFamily,
   } = params
 
   const elements = []
+
+  // 获取字体回退链
+  const tableFont = getFontFallbackChain(fontFamily, (columns.map(c => c.title || '').join('')) + rows.map(r => Object.values(r).join('')).join('')).join(', ')
 
   // 确保 columns 是数组且不为空
   if (!Array.isArray(columns) || columns.length === 0) {
@@ -91,6 +96,7 @@ function createTable(project, canvas, params) {
       point: [currentX + colWidth / 2, y + rowHeight / 2 + fontSize / 3],
       content: col.title || '',
       fontSize: headerFontSize,
+      fontFamily: tableFont,
       fillColor: new paper.Color(headerColor),
       justification: col.align || 'center',
       fontWeight: 'bold'
@@ -143,6 +149,7 @@ function createTable(project, canvas, params) {
         point: [cellX + colWidth / 2, rowY + rowHeight / 2 + fontSize / 3],
         content: String(cellValue),
         fontSize: fontSize,
+        fontFamily: tableFont,
         fillColor: new paper.Color(cellColor),
         justification: col.align || 'center'
       })

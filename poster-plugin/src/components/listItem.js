@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建列表项
@@ -39,9 +40,13 @@ function createListItem(project, canvas, args) {
     borderColor = '#e5e7eb',
     height = 60,
     radius = 8,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const listFont = getFontFallbackChain(fontFamily, (icon || '') + (title || '') + (description || '') + (badge || '')).join(', ')
 
   // 绘制背景
   const bg = new paper.Path.Rectangle({
@@ -59,6 +64,7 @@ function createListItem(project, canvas, args) {
     point: [x + 15, y + height / 2 + 6],
     content: icon,
     fontSize: 20,
+    fontFamily: listFont,
     fillColor: new paper.Color(iconColor),
     justification: 'center',
   })
@@ -69,6 +75,7 @@ function createListItem(project, canvas, args) {
     point: [x + 50, y + height / 2 - 5],
     content: title || 'List Item',
     fontSize: 16,
+    fontFamily: listFont,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
   })
@@ -80,6 +87,7 @@ function createListItem(project, canvas, args) {
       point: [x + 50, y + height / 2 + 15],
       content: description,
       fontSize: 12,
+      fontFamily: listFont,
       fillColor: new paper.Color('#64748b'),
       justification: 'left',
     })
@@ -104,6 +112,7 @@ function createListItem(project, canvas, args) {
       point: [badgeX + badgeWidth / 2, badgeY + 16],
       content: badge,
       fontSize: 12,
+      fontFamily: listFont,
       fillColor: new paper.Color('#ffffff'),
       justification: 'center',
     })

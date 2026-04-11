@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建特性网格
@@ -18,9 +19,13 @@ function createFeatureGrid(project, canvas, args) {
     background = '#1a1a2e',
     borderColor = '#00d9ff',
     radius = 8,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const featureGridFont = getFontFallbackChain(fontFamily, items.map(i => (i.title || '') + (i.description || '')).join('')).join(', ')
 
   // 确保 items 是数组
   if (!Array.isArray(items)) {
@@ -61,6 +66,7 @@ function createFeatureGrid(project, canvas, args) {
         point: [itemX + padding, itemYOffset + 24],
         content: item.icon,
         fontSize: 28,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.iconColor || '#00ff88'),
         justification: 'left',
       })
@@ -77,6 +83,7 @@ function createFeatureGrid(project, canvas, args) {
         point: [itemX + padding, itemYOffset + 18],
         content: item.title,
         fontSize: 16,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.titleColor || '#ffffff'),
         justification: 'left',
       })
@@ -93,6 +100,7 @@ function createFeatureGrid(project, canvas, args) {
         point: [itemX + padding, itemYOffset + 14],
         content: item.description,
         fontSize: 12,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.descColor || '#888888'),
         justification: 'left',
       })

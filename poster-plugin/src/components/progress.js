@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建进度条
@@ -32,9 +33,13 @@ function createProgress(project, canvas, args) {
     radius = 10,
     showLabel = false,
     label,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const progressFont = getFontFallbackChain(fontFamily, label || '').join(', ')
 
   // 绘制轨道
   const track = new paper.Path.Rectangle({
@@ -63,6 +68,7 @@ function createProgress(project, canvas, args) {
       point: [x + width / 2, y - 8],
       content: label,
       fontSize: 14,
+      fontFamily: progressFont,
       fillColor: new paper.Color('#666666'),
       justification: 'center',
     })

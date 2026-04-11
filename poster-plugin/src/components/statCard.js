@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建统计卡片
@@ -38,9 +39,13 @@ function createStatCard(project, canvas, args) {
     background = '#ffffff',
     border = '#e5e7eb',
     radius = 12,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const statFont = getFontFallbackChain(fontFamily, (label || '') + (value || '')).join(', ')
 
   // 绘制背景
   const bg = new paper.Path.Rectangle({
@@ -59,6 +64,7 @@ function createStatCard(project, canvas, args) {
       point: [x + 20, y + 35],
       content: icon,
       fontSize: 24,
+      fontFamily: statFont,
       fillColor: new paper.Color(iconColor),
       justification: 'left',
     })
@@ -70,6 +76,7 @@ function createStatCard(project, canvas, args) {
     point: [x + 20, y + 50 + (icon ? 10 : 0)],
     content: label,
     fontSize: 14,
+    fontFamily: statFont,
     fillColor: new paper.Color('#64748b'),
     justification: 'left',
   })
@@ -80,6 +87,7 @@ function createStatCard(project, canvas, args) {
     point: [x + 20, y + 75 + (icon ? 10 : 0)],
     content: value,
     fontSize: 28,
+    fontFamily: statFont,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
   })
@@ -93,6 +101,7 @@ function createStatCard(project, canvas, args) {
       point: [x + 20, y + 95 + (icon ? 10 : 0)],
       content: `${changeIcon} ${change}`,
       fontSize: 14,
+      fontFamily: statFont,
       fillColor: new paper.Color(changeColor),
       justification: 'left',
     })

@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建特性展示块
@@ -35,9 +36,14 @@ function createFeature(project, canvas, args) {
     iconSize = 32,
     titleSize = 20,
     descSize = 14,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const featureFont = getFontFallbackChain(fontFamily, (icon || '') + (title || '') + (description || '')).join(', ')
+
   const padding = 15
   let currentY = y
 
@@ -47,6 +53,7 @@ function createFeature(project, canvas, args) {
       point: [x + padding, currentY + iconSize],
       content: icon,
       fontSize: iconSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(iconColor),
       justification: 'left',
     })
@@ -60,6 +67,7 @@ function createFeature(project, canvas, args) {
       point: [x + padding, currentY + titleSize],
       content: title,
       fontSize: titleSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(titleColor),
       justification: 'left',
     })
@@ -73,6 +81,7 @@ function createFeature(project, canvas, args) {
       point: [x + padding, currentY + descSize],
       content: description,
       fontSize: descSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(descColor),
       justification: 'left',
     })

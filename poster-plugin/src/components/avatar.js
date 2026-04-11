@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain } = require('../fonts')
 
 /**
  * 创建头像
@@ -19,6 +20,7 @@ const paper = require('paper')
  * @param {string} args.border - 边框颜色
  * @param {number} args.borderWidth - 边框宽度
  * @param {string} args.color - 文字颜色
+ * @param {string} args.fontFamily - 字体
  */
 function createAvatar(project, canvas, args) {
   const {
@@ -30,10 +32,14 @@ function createAvatar(project, canvas, args) {
     border,
     borderWidth = 0,
     color = '#ffffff',
+    fontFamily,
   } = args
 
   const elements = []
   const radius = size / 2
+
+  // 获取字体回退链
+  const avatarFont = getFontFallbackChain(fontFamily, initials || '').join(', ')
 
   // 绘制圆形背景
   const circle = new paper.Path.Circle({
@@ -55,6 +61,7 @@ function createAvatar(project, canvas, args) {
       point: [x, y + size / 6],
       content: initials.charAt(0).toUpperCase(),
       fontSize: size * 0.4,
+      fontFamily: avatarFont,
       fillColor: new paper.Color(color),
       justification: 'center',
     })

@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建时间线
@@ -17,9 +18,13 @@ function createTimeline(project, canvas, args) {
     activeColor = '#22c55e',
     dotSize = 16,
     gap = 60,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const timelineFont = getFontFallbackChain(fontFamily, items.map(i => (i.date || '') + (i.title || '') + (i.description || '')).join('')).join(', ')
 
   // 确保 items 是数组
   if (!Array.isArray(items) || items.length === 0) {
@@ -68,6 +73,7 @@ function createTimeline(project, canvas, args) {
         point: [x + 10, itemY + dotSize / 2 + 5],
         content: item.date,
         fontSize: 12,
+        fontFamily: timelineFont,
         fillColor: new paper.Color('#94a3b8'),
         justification: 'left',
       })
@@ -82,6 +88,7 @@ function createTimeline(project, canvas, args) {
       point: [contentX, itemY + dotSize / 2 + 5],
       content: item.title || `Event ${i + 1}`,
       fontSize: 16,
+      fontFamily: timelineFont,
       fillColor: new paper.Color(isActive ? '#1e293b' : '#94a3b8'),
       justification: 'left',
     })
@@ -96,6 +103,7 @@ function createTimeline(project, canvas, args) {
         point: [contentX, itemY + dotSize / 2 + 28],
         content: item.description,
         fontSize: 13,
+        fontFamily: timelineFont,
         fillColor: new paper.Color('#64748b'),
         justification: 'left',
       })

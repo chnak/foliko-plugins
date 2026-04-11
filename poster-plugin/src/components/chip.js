@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建 Chip 标签组件
@@ -18,10 +19,14 @@ function createChip(project, canvas, params) {
     fontSize = 12,
     padding = 12,
     radius = 16,
-    icon
+    icon,
+    fontFamily,
   } = params
 
   const elements = []
+
+  // 获取字体回退链
+  const chipFont = getFontFallbackChain(fontFamily, text).join(', ')
 
   // 计算尺寸
   const textWidth = text.length * fontSize * 0.6
@@ -53,6 +58,7 @@ function createChip(project, canvas, params) {
       point: [rectX + padding + iconWidth / 2, y + fontSize / 3],
       content: icon,
       fontSize: fontSize + 2,
+      fontFamily: chipFont,
       fillColor: new paper.Color(color),
       justification: 'center'
     })
@@ -68,6 +74,7 @@ function createChip(project, canvas, params) {
     point: [textX, y + fontSize / 3],
     content: text,
     fontSize: fontSize,
+    fontFamily: chipFont,
     fillColor: new paper.Color(color),
     justification: 'center'
   })

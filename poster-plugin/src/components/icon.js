@@ -4,6 +4,7 @@
 
 const paper = require('paper')
 const { loadImageAsRaster } = require('../utils/imageLoader')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建图标
@@ -70,10 +71,12 @@ async function createIcon(project, args) {
     } else {
       // Emoji 或文字图标
       const fontSize = Math.min(size * 0.6, 64)
+      const iconFont = getFontFallbackChain(null, icon).join(', ')
       const textItem = new paper.PointText({
         point: [x + size / 2, y + size / 2 + fontSize / 3],
         content: icon,
         fontSize,
+        fontFamily: iconFont,
         justification: 'center',
       })
       if (color) {

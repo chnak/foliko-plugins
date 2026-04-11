@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建步骤指示器
@@ -30,9 +31,14 @@ function createStepper(project, canvas, args) {
     inactiveColor = '#e5e7eb',
     completedColor = '#22c55e',
     circleSize = 40,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const stepperFont = getFontFallbackChain(fontFamily, steps.map(s => (s.title || '') + (s.description || '')).join('')).join(', ')
+
   const stepWidth = steps.length > 1 ? width / (steps.length - 1) : width
   const lineY = y + circleSize / 2
 
@@ -84,6 +90,7 @@ function createStepper(project, canvas, args) {
       point: [stepX + circleSize / 2, lineY + circleSize / 6],
       content: icon,
       fontSize: 16,
+      fontFamily: stepperFont,
       fillColor: new paper.Color('#ffffff'),
       justification: 'center',
     })
@@ -94,6 +101,7 @@ function createStepper(project, canvas, args) {
       point: [stepX + circleSize / 2, y + circleSize + 20],
       content: step.title || `Step ${i + 1}`,
       fontSize: 14,
+      fontFamily: stepperFont,
       fillColor: new paper.Color(i <= currentStep ? '#1e293b' : '#94a3b8'),
       justification: 'center',
     })
@@ -105,6 +113,7 @@ function createStepper(project, canvas, args) {
         point: [stepX + circleSize / 2, y + circleSize + 38],
         content: step.description,
         fontSize: 11,
+        fontFamily: stepperFont,
         fillColor: new paper.Color('#94a3b8'),
         justification: 'center',
       })

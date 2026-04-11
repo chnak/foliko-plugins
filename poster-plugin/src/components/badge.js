@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建徽章组件
@@ -32,9 +33,13 @@ function createBadge(project, canvas, args) {
     align = 'center',
     padding = 15,
     radius = 4,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const badgeFont = getFontFallbackChain(fontFamily, text).join(', ')
 
   // 计算文字宽度（估算）
   const textWidth = text.length * fontSize * 0.6
@@ -69,6 +74,7 @@ function createBadge(project, canvas, args) {
     point: [badgeX + badgeWidth / 2, y + badgeHeight / 2 + fontSize / 3],
     content: text,
     fontSize: fontSize,
+    fontFamily: badgeFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })

@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建图表组件
@@ -18,10 +19,14 @@ function createChart(project, canvas, params) {
     barColor = '#3b82f6',
     showLabels = true,
     showValues = true,
-    barGap = 4
+    barGap = 4,
+    fontFamily
   } = params
 
   const elements = []
+
+  // 获取字体回退链
+  const chartFont = getFontFallbackChain(fontFamily, data.map(d => (d.label || '') + String(d.value)).join('')).join(', ')
 
   if (type === 'bar' && data.length > 0) {
     const maxValue = Math.max(...data.map(d => d.value))
@@ -54,6 +59,7 @@ function createChart(project, canvas, params) {
           point: [barX + barWidth / 2, barY - 8],
           content: String(item.value),
           fontSize: 12,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#666666'),
           justification: 'center'
         })
@@ -68,6 +74,7 @@ function createChart(project, canvas, params) {
           point: [barX + barWidth / 2, y + height - 8],
           content: item.label || '',
           fontSize: 11,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#333333'),
           justification: 'center'
         })
@@ -107,6 +114,7 @@ function createChart(project, canvas, params) {
           point: [labelX, labelY + 4],
           content: `${Math.round(percentage * 100)}%`,
           fontSize: 11,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#ffffff'),
           justification: 'center',
           fontWeight: 'bold'

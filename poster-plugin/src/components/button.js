@@ -120,11 +120,12 @@ async function createButton(project, args) {
       const iconX = iconPosition === 'left' 
         ? x + padding + iconSize / 2 
         : x + finalWidth - padding - iconSize / 2
-      
+      const iconFont = getFontFallbackChain(fontFamily, icon).join(', ')
       const iconText = new paper.PointText({
         point: [iconX, iconY],
         content: icon,
         fontSize: iconSize,
+        fontFamily: iconFont,
         justification: 'center',
       })
       if (opacity !== 1) iconText.opacity = opacity

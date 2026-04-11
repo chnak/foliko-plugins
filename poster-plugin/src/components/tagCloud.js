@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建标签云
@@ -16,9 +17,13 @@ function createTagCloud(project, canvas, args) {
     padding = 12,
     gap = 10,
     maxWidth = 400,
+    fontFamily,
   } = args
 
   const elements = []
+
+  // 获取字体回退链
+  const tagCloudFont = getFontFallbackChain(fontFamily, tags.map(t => String(t.text || '')).join('')).join(', ')
 
   // 确保 tags 是数组
   if (!Array.isArray(tags) || tags.length === 0) {
@@ -62,6 +67,7 @@ function createTagCloud(project, canvas, args) {
       point: [currentX + tagWidth / 2, currentY + tagHeight / 2 + fontSize / 3],
       content: tagText,
       fontSize: fontSize,
+      fontFamily: tagCloudFont,
       fillColor: new paper.Color(tag.color || '#4338ca'),
       justification: 'center',
     })

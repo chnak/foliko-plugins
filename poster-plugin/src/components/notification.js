@@ -3,6 +3,7 @@
  */
 
 const paper = require('paper')
+const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**
  * 创建通知提示
@@ -28,7 +29,11 @@ function createNotification(project, canvas, args) {
     message,
     showIcon = true,
     radius = 12,
+    fontFamily,
   } = args
+
+  // 获取字体回退链
+  const notifFont = getFontFallbackChain(fontFamily, (title || '') + (message || '')).join(', ')
 
   // 类型配置
   const config = {
@@ -83,6 +88,7 @@ function createNotification(project, canvas, args) {
       point: [x + padding + iconSize / 2, y + padding + iconSize / 2 + 6],
       content: c.icon,
       fontSize: iconSize,
+      fontFamily: notifFont,
       fillColor: new paper.Color(c.iconColor),
       justification: 'center',
     })
@@ -98,6 +104,7 @@ function createNotification(project, canvas, args) {
       point: [textX, currentY + 18],
       content: title,
       fontSize: 16,
+      fontFamily: notifFont,
       fillColor: new paper.Color('#1e293b'),
       justification: 'left',
     })
@@ -111,6 +118,7 @@ function createNotification(project, canvas, args) {
       point: [textX, currentY + 16],
       content: message,
       fontSize: 14,
+      fontFamily: notifFont,
       fillColor: new paper.Color('#475569'),
       justification: 'left',
     })
