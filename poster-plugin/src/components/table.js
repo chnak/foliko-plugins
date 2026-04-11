@@ -14,7 +14,7 @@ function createTable(project, canvas, params) {
     y,
     width,
     columns,
-    rows,
+    rows: rawRows,
     rowHeight = 36,
     headerBg = '#f0f0f0',
     headerColor = '#333333',
@@ -29,18 +29,16 @@ function createTable(project, canvas, params) {
 
   const elements = []
 
-  // 获取字体回退链
-  const tableFont = getFontFallbackChain(fontFamily, (columns.map(c => c.title || '').join('')) + rows.map(r => Object.values(r).join('')).join('')).join(', ')
+  // 确保 rows 是数组（必须在使用前定义）
+  const rows = Array.isArray(rawRows) ? rawRows : []
 
   // 确保 columns 是数组且不为空
   if (!Array.isArray(columns) || columns.length === 0) {
     return { success: true, elements, type: 'table' }
   }
 
-  // 确保 rows 是数组
-  if (!Array.isArray(rows)) {
-    rows = []
-  }
+  // 获取字体回退链
+  const tableFont = getFontFallbackChain(fontFamily, (columns.map(c => c.title || '').join('')) + rows.map(r => Object.values(r).join('')).join('')).join(', ')
 
   // 确保 width 有默认值
   const tableWidth = width || 400

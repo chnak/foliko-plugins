@@ -3,7 +3,7 @@
  */
 
 const paper = require('paper')
-const { loadImageAsRaster, downloadImage } = require('../utils/imageLoader')
+const { loadImageAsRaster } = require('../utils/imageLoader')
 const { getFontFallbackChain, validateFont } = require('../fonts')
 
 /**

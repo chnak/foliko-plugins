@@ -8,9 +8,9 @@ const fs = require('fs')
 const path = require('path')
 
 /**
- * 解析图片源（仅支持本地路径）
+ * 解析图片源（支持本地路径和 data URL）
  * @param {string} src - 图片源
- * @returns {Promise<{path: string, type: 'local'}>}
+ * @returns {Promise<{path: string, type: 'local'|'dataurl'}>}
  */
 async function resolveImageSource(src) {
   if (!src) {
@@ -20,6 +20,16 @@ async function resolveImageSource(src) {
   // 确保 src 是字符串
   if (typeof src !== 'string') {
     throw new Error('Image source must be a string')
+  }
+
+  // 支持 data URL
+  if (src.startsWith('data:')) {
+    return { path: src, type: 'dataurl' }
+  }
+
+  // 支持 http/https URL
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    return { path: src, type: 'url' }
   }
 
   // 本地路径

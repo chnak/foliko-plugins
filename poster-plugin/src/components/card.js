@@ -89,7 +89,12 @@ function createCard(project, canvas, args) {
     elements.push({ type: 'text', id: subtitleText.id })
   }
 
-  return { success: true, elements }
+  return {
+    success: true,
+    type: 'card',
+    id: card.id,
+    elements,
+  }
 }
 
 module.exports = createCard

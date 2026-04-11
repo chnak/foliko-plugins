@@ -15,28 +15,32 @@ async function addBackground(project, canvas, args) {
     const { raster } = await loadImageAsRaster(project, image, { x: 0, y: 0 })
 
     raster.onLoad = () => {
-      // 计算缩放比例，使图片覆盖整个画布（cover 模式）
-      const canvasRatio = canvas.width / canvas.height
-      const imageRatio = raster.width / raster.height
+      try {
+        // 计算缩放比例，使图片覆盖整个画布（cover 模式）
+        const canvasRatio = canvas.width / canvas.height
+        const imageRatio = raster.width / raster.height
 
-      let scaledWidth, scaledHeight, offsetX, offsetY
+        let scaledWidth, scaledHeight, offsetX, offsetY
 
-      if (imageRatio > canvasRatio) {
-        // 图片更宽，以高度为基准缩放
-        scaledHeight = canvas.height
-        scaledWidth = raster.width * (canvas.height / raster.height)
-        offsetX = (canvas.width - scaledWidth) / 2
-        offsetY = 0
-      } else {
-        // 图片更高，以宽度为基准缩放
-        scaledWidth = canvas.width
-        scaledHeight = raster.height * (canvas.width / raster.width)
-        offsetX = 0
-        offsetY = (canvas.height - scaledHeight) / 2
+        if (imageRatio > canvasRatio) {
+          // 图片更宽，以高度为基准缩放
+          scaledHeight = canvas.height
+          scaledWidth = raster.width * (canvas.height / raster.height)
+          offsetX = (canvas.width - scaledWidth) / 2
+          offsetY = 0
+        } else {
+          // 图片更高，以宽度为基准缩放
+          scaledWidth = canvas.width
+          scaledHeight = raster.height * (canvas.width / raster.width)
+          offsetX = 0
+          offsetY = (canvas.height - scaledHeight) / 2
+        }
+
+        raster.bounds = new paper.Rectangle(offsetX, offsetY, scaledWidth, scaledHeight)
+        raster.sendToBack()
+      } catch (err) {
+        console.error('Failed to process background image:', err.message)
       }
-
-      raster.bounds = new paper.Rectangle(offsetX, offsetY, scaledWidth, scaledHeight)
-      raster.sendToBack()
     }
 
     return { success: true, message: 'Background image added' }
@@ -81,6 +85,8 @@ async function addBackground(project, canvas, args) {
       fillColor: new paper.Color(gradientConfig),
     })
     bg.sendToBack()
+
+    return { success: true, id: bg.id, type: 'background' }
   } else if (color) {
     // 创建矩形背景元素（确保导出时能正确渲染）
     const bg = new paper.Path.Rectangle({
@@ -89,11 +95,11 @@ async function addBackground(project, canvas, args) {
       fillColor: new paper.Color(color),
     })
     bg.sendToBack()
+
+    return { success: true, id: bg.id, type: 'background' }
   } else {
     throw new Error('Must provide color, gradient, or image')
   }
-
-  return { success: true, message: 'Background added' }
 }
 
 module.exports = addBackground

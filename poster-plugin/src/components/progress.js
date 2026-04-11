@@ -77,6 +77,8 @@ function createProgress(project, canvas, args) {
 
   return {
     success: true,
+    type: 'progress',
+    id: track.id,
     elements,
     value,
   }

@@ -13,6 +13,26 @@ const paper = require('paper')
  * @param {Object} params - 组件参数
  */
 function createImageFrame(project, canvas, params) {
+  // 参数验证
+  if (!project) {
+    return { success: false, error: 'Project is required' }
+  }
+  if (!canvas) {
+    return { success: false, error: 'Canvas is required' }
+  }
+  if (!params || typeof params !== 'object') {
+    return { success: false, error: 'Params must be an object' }
+  }
+  if (typeof params.src !== 'string') {
+    return { success: false, error: 'src must be a string' }
+  }
+  if (typeof params.x !== 'number' || typeof params.y !== 'number') {
+    return { success: false, error: 'x and y must be numbers' }
+  }
+  if (typeof params.width !== 'number' || typeof params.height !== 'number') {
+    return { success: false, error: 'width and height must be numbers' }
+  }
+
   const {
     src,
     x,
@@ -163,7 +183,7 @@ function createImageFrame(project, canvas, params) {
 
 // 异步加载图片
 function loadImageAsync(src) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     try {
       // 尝试作为 URL 加载
       const raster = new paper.Raster(src)
@@ -190,14 +210,14 @@ function loadImageAsync(src) {
             resolve(raster2)
           }
           raster2.onError = () => {
-            resolve(null)
+            reject(new Error(`Failed to load image as local file: ${src}`))
           }
         } else {
-          resolve(null)
+          reject(new Error(`Image not found and not a valid URL: ${src}`))
         }
       }
     } catch (e) {
-      resolve(null)
+      reject(new Error(`Failed to load image: ${e.message}`))
     }
   })
 }

@@ -11,6 +11,9 @@ const {
   isEmojiFont
 } = require('../fonts')
 
+// 预编译的正则表达式常量
+const CHINESE_REGEX = /[\u4e00-\u9fff]/
+
 /**
  * 检测文本是否包含 emoji
  */
@@ -40,7 +43,7 @@ function containsEmoji(text) {
  */
 function containsChinese(text) {
   if (!text || typeof text !== 'string') return false
-  return /[\u4e00-\u9fff]/.test(text)
+  return CHINESE_REGEX.test(text)
 }
 
 /**
