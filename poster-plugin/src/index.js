@@ -80,7 +80,7 @@ module.exports = function (Plugin) {
       super()
       this.name = 'poster'
       this.version = '1.2.2'
-      this.description = '海报制作插件 - 支持组件化海报生成（多画布并行）'
+      this.description = '海报制作插件 - 支持组件化海报生成'
       this.priority = 15
 
       this._framework = null
@@ -143,7 +143,7 @@ module.exports = function (Plugin) {
     _createAndActivateCanvas() {
       const id = generateCanvasId()
       const canvas = new CanvasManager()
-      const layout = new LayoutManager(null, { width: 0, height: 0 })
+      const layout = new LayoutManager()  // LayoutManager 会自动获取 project
       this._canvasPool.set(id, canvas)
       this._layoutPool.set(id, layout)
       this._activeCanvasId = id
