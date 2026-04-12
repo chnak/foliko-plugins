@@ -80,7 +80,7 @@ module.exports = function (Plugin) {
       super()
       this.name = 'poster'
       this.version = '1.2.2'
-      this.description = '海报制作插件 - 支持组件化海报生成'
+      this.description = '海报制作插件 - 支持组件化海报生成（多画布并行）'
       this.priority = 15
 
       this._framework = null
@@ -197,7 +197,7 @@ module.exports = function (Plugin) {
       get_poster_canvas_info: {
         description: '获取当前画布信息',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则获取当前活跃画布'),
+          id: z.string().describe('画布ID，不填则获取当前活跃画布'),
         }),
         execute: async (args) => {
           let canvas
@@ -280,7 +280,7 @@ module.exports = function (Plugin) {
       destroy_poster_canvas: {
         description: '销毁指定画布，释放内存',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则销毁当前活跃画布'),
+          id: z.string().describe('画布ID，不填则销毁当前活跃画布'),
         }),
         execute: async (args) => {
           const id = args.id || this._activeCanvasId
@@ -313,7 +313,7 @@ module.exports = function (Plugin) {
       clear_poster_canvas: {
         description: '清除画布上的所有元素',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则清除当前活跃画布'),
+          id: z.string().describe('画布ID，不填则清除当前活跃画布'),
         }),
         execute: async (args) => {
           let canvas
@@ -370,7 +370,7 @@ module.exports = function (Plugin) {
 - issues: 问题列表 [{type, elementId, message, suggestion}]
 - recommendations: 修复建议列表`,
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则获取当前活跃画布'),
+          id: z.string().describe('画布ID，不填则获取当前活跃画布'),
         }),
         execute: async (args) => {
           try {
@@ -413,7 +413,7 @@ module.exports = function (Plugin) {
           width: z.number().describe('新元素宽度'),
           height: z.number().describe('新元素高度'),
           margin: z.number().optional().describe('检测边距，默认10'),
-          id: z.string().optional().describe('画布ID'),
+          id: z.string().describe('画布ID'),
         }),
         execute: async (args) => {
           try {
@@ -463,7 +463,7 @@ module.exports = function (Plugin) {
           height: z.number().describe('元素高度'),
           hint: z.enum(['below', 'center', 'top', 'right', 'left', 'grid', 'random']).optional().describe('布局提示'),
           margin: z.number().optional().describe('边距，默认20'),
-          id: z.string().optional().describe('画布ID'),
+          id: z.string().describe('画布ID'),
         }),
         execute: async (args) => {
           try {
@@ -501,7 +501,7 @@ module.exports = function (Plugin) {
 
 注意：目前布局管理器直接从画布读取元素，此工具主要用于保持兼容性。`,
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID'),
+          id: z.string().describe('画布ID'),
         }),
         execute: async (args) => {
           try {
@@ -578,7 +578,7 @@ module.exports = function (Plugin) {
       add_poster_background: {
         description: '为画布添加纯色、渐变或图片背景',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           color: z.string().optional().describe('纯色背景'),
           gradient: z.object({
             type: z.enum(['linear', 'radial']).describe('渐变类型'),
@@ -609,7 +609,7 @@ module.exports = function (Plugin) {
       add_poster_rectangle: {
         description: '在画布上添加矩形',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -638,7 +638,7 @@ module.exports = function (Plugin) {
       add_poster_circle: {
         description: '在画布上添加圆形或椭圆',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('圆心X坐标'),
           cy: z.number().describe('圆心Y坐标'),
           rx: z.number().describe('X轴半径'),
@@ -666,7 +666,7 @@ module.exports = function (Plugin) {
       add_poster_line: {
         description: '在画布上添加线条',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x1: z.number().describe('起点X'),
           y1: z.number().describe('起点Y'),
           x2: z.number().describe('终点X'),
@@ -692,7 +692,7 @@ module.exports = function (Plugin) {
       add_poster_polygon: {
         description: '在画布上添加多边形',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
           radius: z.number().describe('外接圆半径'),
@@ -720,7 +720,7 @@ module.exports = function (Plugin) {
       add_poster_text: {
         description: '在画布上添加文字',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('文字内容'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -753,7 +753,7 @@ module.exports = function (Plugin) {
       add_poster_art_text: {
         description: '添加艺术文字，支持渐变填充和描边',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('文字内容'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -790,7 +790,7 @@ module.exports = function (Plugin) {
       add_poster_rich_text: {
         description: '添加富文本，支持旋转、描边、渐变、阴影等多种样式',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           // 位置和尺寸
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -867,7 +867,7 @@ module.exports = function (Plugin) {
       add_poster_image: {
         description: '在画布上添加图片',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('图片路径或URL'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -895,7 +895,7 @@ module.exports = function (Plugin) {
       add_poster_svg: {
         description: '在画布上添加 SVG（支持文件路径或 SVG 字符串）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('SVG 文件路径或 SVG 字符串'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -921,7 +921,7 @@ module.exports = function (Plugin) {
       export_poster_svg: {
         description: '导出画布为 SVG 格式',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           filename: z.string().describe('文件名（不含扩展名）'),
           outputDir: z.string().optional().describe('输出目录'),
         }),
@@ -962,7 +962,7 @@ module.exports = function (Plugin) {
       export_poster_svg_base64: {
         description: '导出画布为 SVG Base64 编码',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
         }),
         execute: async (args) => {
           try {
@@ -997,7 +997,7 @@ module.exports = function (Plugin) {
       add_poster_card: {
         description: '添加卡片组件（带背景、标题、副标题）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('卡片宽度'),
@@ -1036,7 +1036,7 @@ module.exports = function (Plugin) {
       add_poster_badge: {
         description: '添加徽章/标签组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('徽章文字'),
@@ -1069,7 +1069,7 @@ module.exports = function (Plugin) {
       add_poster_cta: {
         description: '添加行动号召按钮',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('按钮文字'),
@@ -1108,7 +1108,7 @@ module.exports = function (Plugin) {
       add_poster_feature: {
         description: '添加特性展示块',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -1144,7 +1144,7 @@ module.exports = function (Plugin) {
       add_poster_feature_grid: {
         description: '添加特性网格布局',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           columns: z.number().optional().describe('列数，默认3'),
@@ -1185,7 +1185,7 @@ module.exports = function (Plugin) {
       add_poster_divider: {
         description: '添加分隔线',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -1216,7 +1216,7 @@ module.exports = function (Plugin) {
       add_poster_avatar: {
         description: '添加头像组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('圆心X坐标'),
           y: z.number().describe('圆心Y坐标'),
           size: z.number().optional().describe('头像大小'),
@@ -1248,7 +1248,7 @@ module.exports = function (Plugin) {
       add_poster_progress: {
         description: '添加进度条组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('进度条宽度'),
@@ -1282,7 +1282,7 @@ module.exports = function (Plugin) {
       add_poster_rating: {
         description: '添加星级评分组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           value: z.number().optional().describe('评分值 0-5'),
@@ -1314,7 +1314,7 @@ module.exports = function (Plugin) {
       add_poster_quote: {
         description: '添加引用块组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1350,7 +1350,7 @@ module.exports = function (Plugin) {
       add_poster_stat_card: {
         description: '添加统计卡片组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1387,7 +1387,7 @@ module.exports = function (Plugin) {
       add_poster_tag_cloud: {
         description: '添加标签云组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           tags: z.array(z.object({
@@ -1422,7 +1422,7 @@ module.exports = function (Plugin) {
       add_poster_stepper: {
         description: '添加步骤指示器组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('总宽度'),
@@ -1458,7 +1458,7 @@ module.exports = function (Plugin) {
       add_poster_timeline: {
         description: '添加时间线组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('总宽度'),
@@ -1495,7 +1495,7 @@ module.exports = function (Plugin) {
       add_poster_list_item: {
         description: '添加列表项组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1532,7 +1532,7 @@ module.exports = function (Plugin) {
       add_poster_notification: {
         description: '添加通知提示组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
@@ -1564,7 +1564,7 @@ module.exports = function (Plugin) {
       add_poster_image_frame: {
         description: '添加带装饰边框的图片框组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           src: z.string().describe('图片路径或URL'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -1605,7 +1605,7 @@ module.exports = function (Plugin) {
       add_poster_columns: {
         description: '添加分栏布局组件（左右分栏、三栏等）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('起始X坐标'),
           y: z.number().describe('起始Y坐标'),
           width: z.number().describe('总宽度'),
@@ -1641,7 +1641,7 @@ module.exports = function (Plugin) {
       add_poster_grid: {
         description: '添加网格布局组件（任意行列）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('起始X坐标'),
           y: z.number().describe('起始Y坐标'),
           width: z.number().describe('总宽度'),
@@ -1678,7 +1678,7 @@ module.exports = function (Plugin) {
       add_poster_star: {
         description: '添加星形/多角形装饰',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
           points: z.number().optional().describe('星形点数，默认5'),
@@ -1727,7 +1727,7 @@ module.exports = function (Plugin) {
       add_poster_arrow: {
         description: '添加箭头指示',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x1: z.number().describe('起点X'),
           y1: z.number().describe('起点Y'),
           x2: z.number().describe('终点X'),
@@ -1770,7 +1770,7 @@ module.exports = function (Plugin) {
       add_poster_progress_circle: {
         description: '添加环形进度条组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           cx: z.number().describe('圆心X坐标'),
           cy: z.number().describe('圆心Y坐标'),
           radius: z.number().describe('圆环半径'),
@@ -1814,7 +1814,7 @@ module.exports = function (Plugin) {
       add_poster_chip: {
         description: '添加小型信息标签组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标（居中）'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('标签文字'),
@@ -1858,7 +1858,7 @@ module.exports = function (Plugin) {
       add_poster_chart: {
         description: '添加图表组件（柱状图/饼图）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           type: z.enum(['bar', 'pie']).describe('图表类型'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
@@ -1905,7 +1905,7 @@ module.exports = function (Plugin) {
       add_poster_watermark: {
         description: '添加水印文字',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           text: z.string().describe('水印文字'),
           cx: z.number().describe('中心X坐标'),
           cy: z.number().describe('中心Y坐标'),
@@ -1948,7 +1948,7 @@ module.exports = function (Plugin) {
       add_poster_table: {
         description: '添加表格组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('表格宽度'),
@@ -1997,7 +1997,7 @@ module.exports = function (Plugin) {
       add_poster_button: {
         description: '添加按钮组件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认200'),
@@ -2041,7 +2041,7 @@ module.exports = function (Plugin) {
       add_poster_icon: {
         description: '添加图标（emoji或图片）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           size: z.number().optional().describe('图标大小，默认64'),
@@ -2112,7 +2112,7 @@ module.exports = function (Plugin) {
       add_poster_frame: {
         description: '添加装饰边框',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),
@@ -2146,7 +2146,7 @@ module.exports = function (Plugin) {
       add_poster_bubble: {
         description: '添加对话气泡',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认300'),
@@ -2190,7 +2190,7 @@ module.exports = function (Plugin) {
       add_poster_ribbon: {
         description: '添加丝带飘带',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认300'),
@@ -2231,7 +2231,7 @@ module.exports = function (Plugin) {
       add_poster_seal: {
         description: '添加印章效果',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           size: z.number().optional().describe('印章大小，默认100'),
@@ -2264,7 +2264,7 @@ module.exports = function (Plugin) {
       add_poster_highlight_text: {
         description: '添加高亮文字（荧光笔效果）',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           text: z.string().describe('文字内容'),
@@ -2386,7 +2386,7 @@ module.exports = function (Plugin) {
       generate_poster: {
         description: '使用预设模板一键生成海报',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           template: z.enum(['modern', 'business', 'social', 'simple', 'tech', 'gradient']).describe('模板类型'),
           title: z.string().describe('主标题'),
           subtitle: z.string().optional().describe('副标题'),
@@ -2450,7 +2450,7 @@ module.exports = function (Plugin) {
       export_poster_canvas: {
         description: '导出画布为图片文件',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           filename: z.string().describe('文件名（不含扩展名）'),
           format: z.enum(['png', 'jpg']).optional().describe('格式，默认png'),
           quality: z.number().optional().describe('JPEG质量'),
@@ -2489,7 +2489,7 @@ module.exports = function (Plugin) {
       export_poster_base64: {
         description: '导出画布为 Base64 编码',
         inputSchema: z.object({
-          id: z.string().optional().describe('画布ID，不填则使用当前活跃画布'),
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           format: z.enum(['png', 'jpg']).optional().describe('格式'),
           quality: z.number().optional().describe('JPEG质量'),
         }),
