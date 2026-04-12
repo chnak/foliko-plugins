@@ -328,24 +328,25 @@ function createBackgroundElement(project, canvas, { color, gradient, image }) {
     }
 
     raster.onLoad = () => {
-      // 计算缩放比例，使图片覆盖整个画布（cover 模式）
-      const canvasRatio = canvas.width / canvas.height
+      // 使用 project.view.viewSize 获取画布尺寸
+      const viewSize = project.view.viewSize
+      const canvasRatio = viewSize.width / viewSize.height
       const imageRatio = raster.width / raster.height
 
       let scaledWidth, scaledHeight, offsetX, offsetY
 
       if (imageRatio > canvasRatio) {
         // 图片更宽，以高度为基准缩放
-        scaledHeight = canvas.height
-        scaledWidth = raster.width * (canvas.height / raster.height)
-        offsetX = (canvas.width - scaledWidth) / 2
+        scaledHeight = viewSize.height
+        scaledWidth = raster.width * (viewSize.height / raster.height)
+        offsetX = (viewSize.width - scaledWidth) / 2
         offsetY = 0
       } else {
         // 图片更高，以宽度为基准缩放
-        scaledWidth = canvas.width
-        scaledHeight = raster.height * (canvas.width / raster.width)
+        scaledWidth = viewSize.width
+        scaledHeight = raster.height * (viewSize.width / raster.width)
         offsetX = 0
-        offsetY = (canvas.height - scaledHeight) / 2
+        offsetY = (viewSize.height - scaledHeight) / 2
       }
 
       raster.bounds = new paper.Rectangle(offsetX, offsetY, scaledWidth, scaledHeight)
@@ -354,12 +355,14 @@ function createBackgroundElement(project, canvas, { color, gradient, image }) {
   } else if (gradient) {
     const paperColors = gradient.colors.map(c => new paper.Color(c))
     const { type, direction } = gradient
+    // 使用 project.view.viewSize 获取画布尺寸
+    const viewSize = project.view.viewSize
 
     if (type === 'linear') {
       const angle = (direction || 45) * Math.PI / 180
-      const diagonal = Math.sqrt(canvas.width ** 2 + canvas.height ** 2)
-      const centerX = canvas.width / 2
-      const centerY = canvas.height / 2
+      const diagonal = Math.sqrt(viewSize.width ** 2 + viewSize.height ** 2)
+      const centerX = viewSize.width / 2
+      const centerY = viewSize.height / 2
       const start = new paper.Point(
         centerX - Math.cos(angle) * diagonal / 2,
         centerY - Math.sin(angle) * diagonal / 2
@@ -374,8 +377,8 @@ function createBackgroundElement(project, canvas, { color, gradient, image }) {
         destination: stop,
       })
     } else {
-      const center = new paper.Point(canvas.width / 2, canvas.height / 2)
-      const radius = Math.max(canvas.width, canvas.height) / 2
+      const center = new paper.Point(viewSize.width / 2, viewSize.height / 2)
+      const radius = Math.max(viewSize.width, viewSize.height) / 2
       project.activeLayer.fillColor = new paper.Color({
         gradient: { stops: paperColors },
         origin: center,
