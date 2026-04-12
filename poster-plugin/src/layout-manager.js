@@ -4,9 +4,9 @@
 
 class LayoutManager {
   constructor(project, canvasSize) {
-    this.project = project
-    this.width = canvasSize.width
-    this.height = canvasSize.height
+    this.project = project || null
+    this.width = canvasSize?.width || 0
+    this.height = canvasSize?.height || 0
     this.elements = [] // 存储已添加元素的边界信息
   }
 

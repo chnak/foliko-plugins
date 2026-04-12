@@ -40,12 +40,12 @@ class CanvasManager {
       throw new Error('Must provide preset or width/height')
     }
 
-    this._canvas = paper.createCanvas(w, h)
+    // 使用 @napi-rs/canvas 创建画布
+    const { createCanvas: createNodeCanvas } = require('canvas')
+    this._canvas = createNodeCanvas(w, h)
+    
+    // 初始化 paper.js 项目
     this._project = new paper.Project(this._canvas)
-    // 确保活动层存在
-    if (!paper.project || !paper.project.activeLayer) {
-      paper.setup(this._canvas)
-    }
     this._paper = paper
     this._width = w
     this._height = h
@@ -203,8 +203,13 @@ class CanvasManager {
     this._project.view.update()
     this._project.view.draw()
 
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
-    return this._canvas.toBuffer(mimeType, quality)
+    // 使用 paper.js 的 exportImage 方法导出
+    const image = this._project.exportImage({
+      asString: false,
+      format: format === 'jpg' ? 'jpeg' : 'png',
+    })
+    
+    return image
   }
 
   /**
@@ -218,8 +223,13 @@ class CanvasManager {
     this._project.view.update()
     this._project.view.draw()
 
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
-    return this._canvas.toDataURL(mimeType, quality)
+    // 使用 paper.js 的 exportImage 方法导出为 base64
+    const image = this._project.exportImage({
+      asString: true,
+      format: format === 'jpg' ? 'jpeg' : 'png',
+    })
+    
+    return image
   }
 
   /**
