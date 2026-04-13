@@ -63,12 +63,13 @@ function getFontForText(requestedFont, text) {
 /**
  * 手动实现文本自动换行
  */
-function wrapText(text, maxWidth, fontSize, font) {
+function wrapText(text, maxWidth, fontSize, font, letterSpacing = 0) {
   if (!maxWidth || maxWidth <= 0) return [text]
 
   const tempText = new paper.PointText({
     fontSize,
     fontFamily: font,
+    letterSpacing: letterSpacing,
   })
 
   const lines = []
@@ -152,28 +153,59 @@ function addRichText(project, args) {
 
   const actualLineHeight = lineHeight || (fontSize + lineSpacing)
 
-  // 文本换行
+  // 文本换行（考虑字母间距）
   let textLines = [text]
   if (wrap && width && width > 0) {
-    textLines = wrapText(text, width - 10, fontSize, font)
+    textLines = wrapText(text, width - 10, fontSize, font, letterSpacing)
   }
 
   // 创建组
   const group = new paper.Group()
 
+  // 计算每行文本的实际宽度，用于对齐调整
+  const lineWidths = textLines.map(line => {
+    const measureText = new paper.PointText({
+      fontSize,
+      fontFamily: font,
+      fontWeight: effectiveFontWeight,
+      fontStyle: effectiveFontStyle,
+      letterSpacing: letterSpacing,
+      content: line,
+    })
+    const w = measureText.bounds.width
+    measureText.remove()
+    return w
+  })
+
+  // 计算对齐后的文本x坐标
+  const getTextX = (lineWidth, index) => {
+    if (!width || width <= 0) return x
+
+    if (align === 'center') {
+      // 居中：文本起点 = x + (width - 文本宽度) / 2
+      return x + (width - lineWidth) / 2
+    } else if (align === 'right') {
+      // 右对齐：文本起点 = x + width - 文本宽度
+      return x + width - lineWidth
+    }
+    // 左对齐：文本起点 = x
+    return x
+  }
+
   // 逐行创建文本
   textLines.forEach((lineText, index) => {
     const lineY = y + fontSize + index * actualLineHeight
+    const textX = getTextX(lineWidths[index], index)
 
     const textItem = new paper.PointText({
-      point: [x, lineY],
+      point: [textX, lineY],
       content: lineText,
       fontSize,
       fontFamily: font,
       fontWeight: effectiveFontWeight,
       fontStyle: effectiveFontStyle,
       fillColor: new paper.Color(color),
-      justification: align,
+      justification: 'left', // 因为我们已经手动计算了位置
     })
 
     if (letterSpacing !== 0) {
