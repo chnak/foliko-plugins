@@ -24,6 +24,7 @@ const createHighlightText = require('./components/highlightText')
 const createBarcode = require('./components/barcode')
 const createQuote = require('./components/quote')
 const { loadImageAsRaster } = require('./utils/imageLoader')
+const { getFontFallbackChain } = require('./fonts')
 
 // 组件包装函数
 async function createButtonComponent(project, canvas, args) {
@@ -789,8 +790,10 @@ function createCardComponent(project, canvas, {
   title, titleSize, titleColor,
   subtitle, subtitleSize, subtitleColor,
   padding = 20,
+  fontFamily,
 }) {
   const elements = []
+  const cardFont = getFontFallbackChain(fontFamily, (title || '') + (subtitle || '')).join(', ')
 
   // 卡片背景
   const card = new paper.Path.Rectangle({
@@ -815,6 +818,7 @@ function createCardComponent(project, canvas, {
       point: [x + padding, y + padding + (titleSize || 24)],
       content: title,
       fontSize: titleSize || 24,
+      fontFamily: cardFont,
       fillColor: new paper.Color(titleColor || '#000000'),
       justification: 'left',
     })
@@ -832,6 +836,7 @@ function createCardComponent(project, canvas, {
       point: [x + padding, subY],
       content: subtitle,
       fontSize: subtitleSize || 16,
+      fontFamily: cardFont,
       fillColor: new paper.Color(subtitleColor || '#666666'),
       justification: 'left',
     })
@@ -849,6 +854,7 @@ function createBadgeComponent(project, canvas, {
   x, y, text,
   background = '#007bff', color = '#ffffff',
   border, fontSize = 18, padding = 15, radius = 4,
+  fontFamily,
 }) {
   const textWidth = text.length * fontSize * 0.6
   const badgeWidth = textWidth + padding * 2
@@ -863,10 +869,12 @@ function createBadgeComponent(project, canvas, {
   badge.fillColor = new paper.Color(background)
   if (border) badge.strokeColor = new paper.Color(border)
 
+  const badgeFont = getFontFallbackChain(fontFamily, text).join(', ')
   const badgeText = new paper.PointText({
     point: [x, y + badgeHeight / 2 + fontSize / 3],
     content: text,
     fontSize: fontSize,
+    fontFamily: badgeFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
@@ -878,7 +886,7 @@ function createCTAComponent(project, canvas, {
   x, y, text,
   background = '#007bff', color = '#ffffff',
   border, fontSize = 20, padding = 25, radius = 8, shadow,
-  width: customWidth,
+  width: customWidth, fontFamily,
 }) {
   // 确保 text 是字符串
   const textStr = String(text || '')
@@ -904,10 +912,12 @@ function createCTAComponent(project, canvas, {
     button.shadowOffset = new paper.Point(shadow.offsetX || 0, shadow.offsetY || 4)
   }
 
+  const ctaFont = getFontFallbackChain(fontFamily, textStr).join(', ')
   const buttonText = new paper.PointText({
     point: [x, y + btnHeight / 2 + fontSize / 3],
     content: textStr,
     fontSize: fontSize,
+    fontFamily: ctaFont,
     fillColor: new paper.Color(color),
     justification: 'center',
   })
@@ -926,16 +936,19 @@ function createFeatureComponent(project, canvas, {
   icon, title, description,
   iconColor = '#007bff', titleColor = '#ffffff', descColor = '#aaaaaa',
   iconSize = 32, titleSize = 20, descSize = 14,
+  fontFamily,
 }) {
   const elements = []
   const padding = 15
   let currentY = y
+  const featureFont = getFontFallbackChain(fontFamily, (icon || '') + (title || '') + (description || '')).join(', ')
 
   if (icon) {
     elements.push(new paper.PointText({
       point: [x + padding, currentY + iconSize],
       content: icon,
       fontSize: iconSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(iconColor),
       justification: 'left',
     }))
@@ -947,6 +960,7 @@ function createFeatureComponent(project, canvas, {
       point: [x + padding, currentY + titleSize],
       content: title,
       fontSize: titleSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(titleColor),
       justification: 'left',
     }))
@@ -958,6 +972,7 @@ function createFeatureComponent(project, canvas, {
       point: [x + padding, currentY + descSize],
       content: description,
       fontSize: descSize,
+      fontFamily: featureFont,
       fillColor: new paper.Color(descColor),
       justification: 'left',
     }))
@@ -971,8 +986,10 @@ function createFeatureGridComponent(project, canvas, {
   columns = 3, itemWidth = 200, itemHeight = 120, gap = 20,
   items = [],
   background = '#1a1a2e', borderColor = '#00d9ff', radius = 8,
+  fontFamily,
 }) {
   const elements = []
+  const featureGridFont = getFontFallbackChain(fontFamily, items.map(i => (i.icon || '') + (i.title || '') + (i.description || '')).join('')).join(', ')
 
   // 确保 items 是数组
   if (!Array.isArray(items)) {
@@ -1012,6 +1029,7 @@ function createFeatureGridComponent(project, canvas, {
         point: [itemX + padding, offsetY + 24],
         content: item.icon,
         fontSize: 28,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.iconColor || '#00ff88'),
         justification: 'left',
       })
@@ -1027,6 +1045,7 @@ function createFeatureGridComponent(project, canvas, {
         point: [itemX + padding, offsetY + 18],
         content: item.title,
         fontSize: 16,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.titleColor || '#ffffff'),
         justification: 'left',
       })
@@ -1042,6 +1061,7 @@ function createFeatureGridComponent(project, canvas, {
         point: [itemX + padding, offsetY + 14],
         content: item.description,
         fontSize: 12,
+        fontFamily: featureGridFont,
         fillColor: new paper.Color(item.descColor || '#888888'),
         justification: 'left',
       })
@@ -1098,9 +1118,10 @@ module.exports = {
 
 // ============= 新增组件创建函数 =============
 
-function createAvatarComponent(project, canvas, { x, y, size = 80, initials, background = '#6366f1', border, borderWidth = 0, color = '#ffffff' }) {
+function createAvatarComponent(project, canvas, { x, y, size = 80, initials, background = '#6366f1', border, borderWidth = 0, color = '#ffffff', fontFamily }) {
   const elements = []
   const radius = size / 2
+  const avatarFont = getFontFallbackChain(fontFamily, initials || '').join(', ')
 
   const circle = new paper.Path.Circle({
     center: [x, y],
@@ -1118,6 +1139,7 @@ function createAvatarComponent(project, canvas, { x, y, size = 80, initials, bac
       point: [x, y + size / 6],
       content: initials.charAt(0).toUpperCase(),
       fontSize: size * 0.4,
+      fontFamily: avatarFont,
       fillColor: new paper.Color(color),
       justification: 'center',
     })
@@ -1127,8 +1149,9 @@ function createAvatarComponent(project, canvas, { x, y, size = 80, initials, bac
   return { success: true, elements, type: 'avatar', size }
 }
 
-function createProgressComponent(project, canvas, { x, y, width = 300, height = 20, value = 50, trackColor = '#e0e0e0', fillColor = '#6366f1', radius = 10, showLabel = false, label }) {
+function createProgressComponent(project, canvas, { x, y, width = 300, height = 20, value = 50, trackColor = '#e0e0e0', fillColor = '#6366f1', radius = 10, showLabel = false, label, fontFamily }) {
   const elements = []
+  const progressFont = getFontFallbackChain(fontFamily, label || '').join(', ')
 
   const track = new paper.Path.Rectangle({
     point: [x, y],
@@ -1154,6 +1177,7 @@ function createProgressComponent(project, canvas, { x, y, width = 300, height = 
       point: [x + width / 2, y - 8],
       content: label,
       fontSize: 14,
+      fontFamily: progressFont,
       fillColor: new paper.Color('#666666'),
       justification: 'center',
     })
@@ -1183,9 +1207,10 @@ function createRatingComponent(project, canvas, { x, y, value = 4, max = 5, size
   return { success: true, elements, value }
 }
 
-function createQuoteComponent(project, canvas, { x, y, width = 400, text, author, background = '#f8fafc', borderColor = '#6366f1', borderWidth = 4, padding = 20, radius = 8, textColor = '#1e293b', authorColor = '#64748b', fontSize = 18 }) {
+function createQuoteComponent(project, canvas, { x, y, width = 400, text, author, background = '#f8fafc', borderColor = '#6366f1', borderWidth = 4, padding = 20, radius = 8, textColor = '#1e293b', authorColor = '#64748b', fontSize = 18, fontFamily }) {
   const elements = []
   const lineHeight = 22
+  const quoteFont = getFontFallbackChain(fontFamily, (text || '') + (author || '')).join(', ')
 
   const bg = new paper.Path.Rectangle({
     point: [x, y],
@@ -1206,6 +1231,7 @@ function createQuoteComponent(project, canvas, { x, y, width = 400, text, author
     point: [x + padding + 10, y + padding + fontSize],
     content: '"',
     fontSize: fontSize * 2,
+    fontFamily: quoteFont,
     fillColor: new paper.Color(borderColor),
     justification: 'left',
   })
@@ -1215,6 +1241,7 @@ function createQuoteComponent(project, canvas, { x, y, width = 400, text, author
     point: [x + padding + 30, y + padding + fontSize * 1.5],
     content: text,
     fontSize: fontSize,
+    fontFamily: quoteFont,
     fillColor: new paper.Color(textColor),
     justification: 'left',
   })
@@ -1225,6 +1252,7 @@ function createQuoteComponent(project, canvas, { x, y, width = 400, text, author
       point: [x + padding, y + padding + fontSize * 2.5 + 10],
       content: `— ${author}`,
       fontSize: fontSize * 0.8,
+      fontFamily: quoteFont,
       fillColor: new paper.Color(authorColor),
       justification: 'left',
     })
@@ -1234,8 +1262,9 @@ function createQuoteComponent(project, canvas, { x, y, width = 400, text, author
   return { success: true, elements, type: 'quote' }
 }
 
-function createStatCardComponent(project, canvas, { x, y, width = 200, height = 120, label = 'Total', value = '0', change, positive = true, icon, iconColor = '#6366f1', background = '#ffffff', border = '#e5e7eb', radius = 12 }) {
+function createStatCardComponent(project, canvas, { x, y, width = 200, height = 120, label = 'Total', value = '0', change, positive = true, icon, iconColor = '#6366f1', background = '#ffffff', border = '#e5e7eb', radius = 12, fontFamily }) {
   const elements = []
+  const statFont = getFontFallbackChain(fontFamily, (icon || '') + (label || '') + (value || '') + (change || '')).join(', ')
 
   const bg = new paper.Path.Rectangle({
     point: [x, y],
@@ -1252,6 +1281,7 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
       point: [x + 20, y + 35],
       content: icon,
       fontSize: 24,
+      fontFamily: statFont,
       fillColor: new paper.Color(iconColor),
       justification: 'left',
     }))
@@ -1261,6 +1291,7 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
     point: [x + 20, y + 50 + (icon ? 10 : 0)],
     content: label,
     fontSize: 14,
+    fontFamily: statFont,
     fillColor: new paper.Color('#64748b'),
     justification: 'left',
   }))
@@ -1269,6 +1300,7 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
     point: [x + 20, y + 75 + (icon ? 10 : 0)],
     content: value,
     fontSize: 28,
+    fontFamily: statFont,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
   }))
@@ -1280,6 +1312,7 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
       point: [x + 20, y + 95 + (icon ? 10 : 0)],
       content: `${changeIcon} ${change}`,
       fontSize: 14,
+      fontFamily: statFont,
       fillColor: new paper.Color(changeColor),
       justification: 'left',
     }))
@@ -1288,8 +1321,9 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
   return { success: true, elements, type: 'statCard' }
 }
 
-function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 14, padding = 12, gap = 10, maxWidth = 400 }) {
+function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 14, padding = 12, gap = 10, maxWidth = 400, fontFamily }) {
   const elements = []
+  const tagCloudFont = getFontFallbackChain(fontFamily, tags.map(t => String(t.text || '')).join('')).join(', ')
 
   // 确保 tags 是数组
   if (!Array.isArray(tags) || tags.length === 0) {
@@ -1332,6 +1366,7 @@ function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 
       point: [currentX + tagWidth / 2, currentY + tagHeight / 2 + fontSize / 3],
       content: tagText,
       fontSize: fontSize,
+      fontFamily: tagCloudFont,
       fillColor: new paper.Color(tag.color || '#4338ca'),
       justification: 'center',
     })
@@ -1347,8 +1382,9 @@ function createTagCloudComponent(project, canvas, { x, y, tags = [], fontSize = 
   return { success: true, elements, type: 'tagCloud', height: rowHeight }
 }
 
-function createStepperComponent(project, canvas, { x, y, width = 600, steps = [], currentStep = 0, activeColor = '#6366f1', inactiveColor = '#e5e7eb', completedColor = '#22c55e', circleSize = 40 }) {
+function createStepperComponent(project, canvas, { x, y, width = 600, steps = [], currentStep = 0, activeColor = '#6366f1', inactiveColor = '#e5e7eb', completedColor = '#22c55e', circleSize = 40, fontFamily }) {
   const elements = []
+  const stepperFont = getFontFallbackChain(fontFamily, steps.map(s => (s.title || '') + (s.description || '')).join('')).join(', ')
   const stepWidth = steps.length > 1 ? width / (steps.length - 1) : width
   const lineY = y + circleSize / 2
 
@@ -1382,6 +1418,7 @@ function createStepperComponent(project, canvas, { x, y, width = 600, steps = []
       point: [stepX + circleSize / 2, lineY + circleSize / 6],
       content: icon,
       fontSize: 16,
+      fontFamily: stepperFont,
       fillColor: new paper.Color('#ffffff'),
       justification: 'center',
     }))
@@ -1390,6 +1427,7 @@ function createStepperComponent(project, canvas, { x, y, width = 600, steps = []
       point: [stepX + circleSize / 2, y + circleSize + 20],
       content: steps[i].title || `Step ${i + 1}`,
       fontSize: 14,
+      fontFamily: stepperFont,
       fillColor: new paper.Color(i <= currentStep ? '#1e293b' : '#94a3b8'),
       justification: 'center',
     }))
@@ -1399,6 +1437,7 @@ function createStepperComponent(project, canvas, { x, y, width = 600, steps = []
         point: [stepX + circleSize / 2, y + circleSize + 38],
         content: steps[i].description,
         fontSize: 11,
+        fontFamily: stepperFont,
         fillColor: new paper.Color('#94a3b8'),
         justification: 'center',
       }))
@@ -1408,8 +1447,9 @@ function createStepperComponent(project, canvas, { x, y, width = 600, steps = []
   return { success: true, elements, type: 'stepper' }
 }
 
-function createTimelineComponent(project, canvas, { x, y, width = 500, items = [], lineColor = '#e2e8f0', dotColor = '#6366f1', dotSize = 16, gap = 60 }) {
+function createTimelineComponent(project, canvas, { x, y, width = 500, items = [], lineColor = '#e2e8f0', dotColor = '#6366f1', dotSize = 16, gap = 60, fontFamily }) {
   const elements = []
+  const timelineFont = getFontFallbackChain(fontFamily, items.map(item => (item.date || '') + (item.title || '') + (item.description || '')).join('')).join(', ')
 
   // 确保 items 是数组
   if (!Array.isArray(items) || items.length === 0) {
@@ -1454,6 +1494,7 @@ function createTimelineComponent(project, canvas, { x, y, width = 500, items = [
         point: [x + 10, itemY + dotSize / 2 + 5],
         content: item.date,
         fontSize: 12,
+        fontFamily: timelineFont,
         fillColor: new paper.Color('#94a3b8'),
         justification: 'left',
       })
@@ -1467,6 +1508,7 @@ function createTimelineComponent(project, canvas, { x, y, width = 500, items = [
       point: [contentX, itemY + dotSize / 2 + 5],
       content: item.title || `Event ${i + 1}`,
       fontSize: 16,
+      fontFamily: timelineFont,
       fillColor: new paper.Color(isActive ? '#1e293b' : '#94a3b8'),
       justification: 'left',
     })
@@ -1480,6 +1522,7 @@ function createTimelineComponent(project, canvas, { x, y, width = 500, items = [
         point: [contentX, itemY + dotSize / 2 + 28],
         content: item.description,
         fontSize: 13,
+        fontFamily: timelineFont,
         fillColor: new paper.Color('#64748b'),
         justification: 'left',
       })
@@ -1493,8 +1536,9 @@ function createTimelineComponent(project, canvas, { x, y, width = 500, items = [
   return { success: true, elements, type: 'timeline', height: items.length * gap }
 }
 
-function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, icon = '→', title, description, badge, badgeColor = '#6366f1', iconColor = '#6366f1', background = '#ffffff', borderColor = '#e5e7eb', height = 60, radius = 8 }) {
+function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, icon = '→', title, description, badge, badgeColor = '#6366f1', iconColor = '#6366f1', background = '#ffffff', borderColor = '#e5e7eb', height = 60, radius = 8, fontFamily }) {
   const elements = []
+  const listItemFont = getFontFallbackChain(fontFamily, (title || '') + (description || '') + (badge || '')).join(', ')
 
   // 添加到项目活动层
   const addToProject = (item) => {
@@ -1518,6 +1562,7 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
     point: [x + 15, y + height / 2 + 6],
     content: icon,
     fontSize: 20,
+    fontFamily: listItemFont,
     fillColor: new paper.Color(iconColor),
     justification: 'center',
   })
@@ -1527,6 +1572,7 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
     point: [x + 50, y + height / 2 - 5],
     content: title || 'List Item',
     fontSize: 16,
+    fontFamily: listItemFont,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
   })
@@ -1537,6 +1583,7 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
       point: [x + 50, y + height / 2 + 15],
       content: description,
       fontSize: 12,
+      fontFamily: listItemFont,
       fillColor: new paper.Color('#64748b'),
       justification: 'left',
     })
@@ -1560,6 +1607,7 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
       point: [badgeX + badgeWidth / 2, badgeY + 16],
       content: badge,
       fontSize: 12,
+      fontFamily: listItemFont,
       fillColor: new paper.Color('#ffffff'),
       justification: 'center',
     })
@@ -1569,7 +1617,8 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
   return { success: true, elements, type: 'listItem' }
 }
 
-function createNotificationComponent(project, canvas, { x, y, width = 360, notifType = 'info', title, message, showIcon = true, radius = 12 }) {
+function createNotificationComponent(project, canvas, { x, y, width = 360, notifType = 'info', title, message, showIcon = true, radius = 12, fontFamily }) {
+  const notifFont = getFontFallbackChain(fontFamily, (title || '') + (message || '')).join(', ')
   const config = {
     success: { icon: '✓', bgColor: '#dcfce7', iconColor: '#22c55e', borderColor: '#22c55e' },
     warning: { icon: '⚠', bgColor: '#fef9c3', iconColor: '#eab308', borderColor: '#eab308' },
@@ -1599,6 +1648,7 @@ function createNotificationComponent(project, canvas, { x, y, width = 360, notif
       point: [x + padding + iconSize / 2, y + padding + iconSize / 2 + 6],
       content: c.icon,
       fontSize: iconSize,
+      fontFamily: notifFont,
       fillColor: new paper.Color(c.iconColor),
       justification: 'center',
     }))
@@ -1612,6 +1662,7 @@ function createNotificationComponent(project, canvas, { x, y, width = 360, notif
       point: [textX, currentY + 18],
       content: title,
       fontSize: 16,
+      fontFamily: notifFont,
       fillColor: new paper.Color('#1e293b'),
       justification: 'left',
     }))
@@ -1623,6 +1674,7 @@ function createNotificationComponent(project, canvas, { x, y, width = 360, notif
       point: [textX, currentY + 16],
       content: message,
       fontSize: 14,
+      fontFamily: notifFont,
       fillColor: new paper.Color('#475569'),
       justification: 'left',
     }))
@@ -2033,9 +2085,10 @@ function createArrowComponent(project, canvas, {
  */
 function createProgressCircleComponent(project, canvas, {
   cx, cy, radius, value, strokeWidth = 10, trackColor = '#e0e0e0',
-  fillColor = '#3b82f6', backgroundColor, showLabel = true, labelColor, startAngle = -90
+  fillColor = '#3b82f6', backgroundColor, showLabel = true, labelColor, startAngle = -90, fontFamily
 }) {
   const elements = []
+  const progressCircleFont = getFontFallbackChain(fontFamily, String(value)).join(', ')
 
   if (backgroundColor) {
     const bgCircle = new paper.Path.Circle({ center: [cx, cy], radius: radius })
@@ -2069,6 +2122,7 @@ function createProgressCircleComponent(project, canvas, {
       point: [cx, cy + 6],
       content: `${Math.round(value)}%`,
       fontSize: radius * 0.4,
+      fontFamily: progressCircleFont,
       fillColor: new paper.Color(textColor),
       justification: 'center',
       fontWeight: 'bold'
@@ -2084,9 +2138,10 @@ function createProgressCircleComponent(project, canvas, {
  */
 function createChipComponent(project, canvas, {
   x, y, text, background = '#e0e0e0', color = '#333333', borderColor,
-  fontSize = 12, padding = 12, radius = 16, icon
+  fontSize = 12, padding = 12, radius = 16, icon, fontFamily
 }) {
   const elements = []
+  const chipFont = getFontFallbackChain(fontFamily, text).join(', ')
   const textWidth = text.length * fontSize * 0.6
   const iconWidth = icon ? fontSize : 0
   const totalWidth = padding * 2 + textWidth + iconWidth + 4
@@ -2104,6 +2159,7 @@ function createChipComponent(project, canvas, {
       point: [rectX + padding + iconWidth / 2, y + fontSize / 3],
       content: icon,
       fontSize: fontSize + 2,
+      fontFamily: chipFont,
       fillColor: new paper.Color(color),
       justification: 'center'
     })
@@ -2115,6 +2171,7 @@ function createChipComponent(project, canvas, {
     point: [textX, y + fontSize / 3],
     content: text,
     fontSize: fontSize,
+    fontFamily: chipFont,
     fillColor: new paper.Color(color),
     justification: 'center'
   })
@@ -2128,9 +2185,10 @@ function createChipComponent(project, canvas, {
  */
 function createChartComponent(project, canvas, {
   chartType = 'bar', x, y, width, height, data = [], barColor = '#3b82f6',
-  showLabels = true, showValues = true, barGap = 4
+  showLabels = true, showValues = true, barGap = 4, fontFamily
 }) {
   const elements = []
+  const chartFont = getFontFallbackChain(fontFamily, data.map(d => (d.label || '') + String(d.value)).join('')).join(', ')
 
   if (chartType === 'bar' && data.length > 0) {
     const maxValue = Math.max(...data.map(d => d.value))
@@ -2160,6 +2218,7 @@ function createChartComponent(project, canvas, {
           point: [barX + barWidth / 2, barY - 8],
           content: String(item.value),
           fontSize: 12,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#666666'),
           justification: 'center'
         })
@@ -2171,6 +2230,7 @@ function createChartComponent(project, canvas, {
           point: [barX + barWidth / 2, y + height - 8],
           content: item.label || '',
           fontSize: 11,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#333333'),
           justification: 'center'
         })
@@ -2204,6 +2264,7 @@ function createChartComponent(project, canvas, {
           point: [labelX, labelY + 4],
           content: `${Math.round(percentage * 100)}%`,
           fontSize: 11,
+          fontFamily: chartFont,
           fillColor: new paper.Color('#ffffff'),
           justification: 'center',
           fontWeight: 'bold'
@@ -2254,9 +2315,10 @@ function createWatermarkComponent(project, canvas, {
 function createTableComponent(project, canvas, {
   x, y, width, columns = [], rows = [], rowHeight = 36,
   headerBg = '#f0f0f0', headerColor = '#333333', borderColor = '#e0e0e0',
-  cellColor = '#333333', fontSize = 12, headerFontSize = 13, striped = true, stripeColor = '#fafafa'
+  cellColor = '#333333', fontSize = 12, headerFontSize = 13, striped = true, stripeColor = '#fafafa', fontFamily
 }) {
   const elements = []
+  const tableFont = getFontFallbackChain(fontFamily, columns.map(c => c.title || '').join('') + rows.map(r => r.join('')).join('')).join(', ')
   // 确保 columns 是数组
   if (!Array.isArray(columns) || columns.length === 0) {
     return { success: true, elements, type: 'table' }
@@ -2293,6 +2355,7 @@ function createTableComponent(project, canvas, {
       point: [currentX + colWidth / 2, y + rowHeight / 2 + fontSize / 3],
       content: col.title || '',
       fontSize: headerFontSize,
+      fontFamily: tableFont,
       fillColor: new paper.Color(headerColor),
       justification: col.align || 'center',
       fontWeight: 'bold'
@@ -2323,6 +2386,7 @@ function createTableComponent(project, canvas, {
         point: [cellX + colWidth / 2, rowY + rowHeight / 2 + fontSize / 3],
         content: String(cellValue),
         fontSize: fontSize,
+        fontFamily: tableFont,
         fillColor: new paper.Color(cellColor),
         justification: col.align || 'center'
       })

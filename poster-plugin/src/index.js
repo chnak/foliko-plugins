@@ -1005,6 +1005,7 @@ module.exports = function (Plugin) {
           subtitleSize: z.number().optional().describe('副标题字体大小'),
           subtitleColor: z.string().optional().describe('副标题颜色'),
           padding: z.number().optional().describe('内边距'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1038,6 +1039,7 @@ module.exports = function (Plugin) {
           fontSize: z.number().optional().describe('字体大小'),
           padding: z.number().optional().describe('内边距'),
           radius: z.number().optional().describe('圆角半径'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1077,6 +1079,7 @@ module.exports = function (Plugin) {
             offsetX: z.number().optional(),
             offsetY: z.number().optional(),
           }).optional(),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1113,6 +1116,7 @@ module.exports = function (Plugin) {
           iconSize: z.number().optional().describe('图标大小'),
           titleSize: z.number().optional().describe('标题大小'),
           descSize: z.number().optional().describe('描述大小'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1154,6 +1158,7 @@ module.exports = function (Plugin) {
           background: z.string().optional().describe('背景色'),
           borderColor: z.string().optional().describe('边框颜色'),
           radius: z.number().optional().describe('圆角半径'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1217,6 +1222,7 @@ module.exports = function (Plugin) {
           border: z.string().optional().describe('边框颜色'),
           borderWidth: z.number().optional().describe('边框宽度'),
           color: z.string().optional().describe('文字颜色'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1251,6 +1257,7 @@ module.exports = function (Plugin) {
           radius: z.number().optional().describe('圆角半径'),
           showLabel: z.boolean().optional().describe('是否显示标签'),
           label: z.string().optional().describe('标签文字'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1319,6 +1326,7 @@ module.exports = function (Plugin) {
           textColor: z.string().optional().describe('文字颜色'),
           authorColor: z.string().optional().describe('作者颜色'),
           fontSize: z.number().optional().describe('字体大小'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1356,6 +1364,7 @@ module.exports = function (Plugin) {
           background: z.string().optional().describe('背景色'),
           border: z.string().optional().describe('边框颜色'),
           radius: z.number().optional().describe('圆角半径'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1391,6 +1400,7 @@ module.exports = function (Plugin) {
           padding: z.number().optional().describe('标签内边距'),
           gap: z.number().optional().describe('标签间距'),
           maxWidth: z.number().optional().describe('最大宽度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1427,6 +1437,7 @@ module.exports = function (Plugin) {
           inactiveColor: z.string().optional().describe('未激活颜色'),
           completedColor: z.string().optional().describe('已完成颜色'),
           circleSize: z.number().optional().describe('圆圈大小'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1464,6 +1475,7 @@ module.exports = function (Plugin) {
           dotColor: z.string().optional().describe('点颜色'),
           dotSize: z.number().optional().describe('点大小'),
           gap: z.number().optional().describe('项目间距'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1501,6 +1513,7 @@ module.exports = function (Plugin) {
           borderColor: z.string().optional().describe('边框颜色'),
           height: z.number().optional().describe('高度'),
           radius: z.number().optional().describe('圆角半径'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1533,6 +1546,7 @@ module.exports = function (Plugin) {
           message: z.string().optional().describe('消息内容'),
           showIcon: z.boolean().optional().describe('是否显示图标'),
           radius: z.number().optional().describe('圆角半径'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1773,6 +1787,7 @@ module.exports = function (Plugin) {
           backgroundColor: z.string().optional().describe('背景填充色'),
           showLabel: z.boolean().optional().describe('是否显示百分比标签'),
           labelColor: z.string().optional().describe('标签颜色'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1817,6 +1832,7 @@ module.exports = function (Plugin) {
           padding: z.number().optional().describe('内边距'),
           radius: z.number().optional().describe('圆角'),
           icon: z.string().optional().describe('前置图标 emoji'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1864,6 +1880,7 @@ module.exports = function (Plugin) {
           barColor: z.string().optional().describe('默认柱状颜色'),
           showLabels: z.boolean().optional().describe('显示标签'),
           showValues: z.boolean().optional().describe('显示数值'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -1956,6 +1973,7 @@ module.exports = function (Plugin) {
           borderColor: z.string().optional().describe('边框颜色'),
           fontSize: z.number().optional().describe('字体大小'),
           striped: z.boolean().optional().describe('斑马纹'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2011,6 +2029,7 @@ module.exports = function (Plugin) {
             colors: z.array(z.string()).describe('渐变颜色数组'),
           }).optional(),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2050,6 +2069,7 @@ module.exports = function (Plugin) {
             offsetY: z.number().optional(),
           }).optional(),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2160,6 +2180,7 @@ module.exports = function (Plugin) {
             offsetY: z.number().optional(),
           }).optional(),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2201,6 +2222,7 @@ module.exports = function (Plugin) {
             offsetY: z.number().optional(),
           }).optional(),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2234,6 +2256,7 @@ module.exports = function (Plugin) {
           style: z.enum(['circle', 'square', 'star', 'hexagon']).optional().describe('印章形状'),
           borderWidth: z.number().optional().describe('边框宽度'),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2273,6 +2296,7 @@ module.exports = function (Plugin) {
             offsetY: z.number().optional(),
           }).optional(),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
@@ -2307,6 +2331,7 @@ module.exports = function (Plugin) {
           textColor: z.string().optional().describe('文字颜色'),
           fontSize: z.number().optional().describe('字体大小'),
           opacity: z.number().optional().describe('透明度'),
+          fontFamily: z.string().optional().describe('字体'),
         }),
         execute: async (args) => {
           try {
