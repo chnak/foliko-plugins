@@ -200,12 +200,9 @@ module.exports = function (Plugin) {
           id: z.string().describe('画布ID，不填则获取当前活跃画布'),
         }),
         execute: async (args) => {
-          let canvas
-          if (args.id) {
-            canvas = this._canvasPool.get(args.id)
-            if (!canvas) {
+          let canvas = this._getCanvasById(args.id)
+          if (!canvas) {
               return { success: false, error: `Canvas not found: ${args.id}` }
-            }
           } else {
             canvas = this._getActiveCanvas()
           }
@@ -232,7 +229,7 @@ module.exports = function (Plugin) {
           id: z.string().describe('画布ID'),
         }),
         execute: async (args) => {
-          const canvas = this._canvasPool.get(args.id)
+          const canvas = this._getCanvasById(args.id)
           if (!canvas) {
             return { success: false, error: `Canvas not found: ${args.id}` }
           }
@@ -283,11 +280,10 @@ module.exports = function (Plugin) {
           id: z.string().describe('画布ID，不填则销毁当前活跃画布'),
         }),
         execute: async (args) => {
-          const id = args.id || this._activeCanvasId
-          if (!this._canvasPool.has(id)) {
+          const canvas = this._getCanvasById(args.id)
+          if (!canvas) {
             return { success: false, error: `Canvas not found: ${id}` }
           }
-          const canvas = this._canvasPool.get(id)
           canvas.reset()
           this._canvasPool.delete(id)
           // 同时删除布局管理器
@@ -316,15 +312,7 @@ module.exports = function (Plugin) {
           id: z.string().describe('画布ID，不填则清除当前活跃画布'),
         }),
         execute: async (args) => {
-          let canvas
-          if (args.id) {
-            canvas = this._canvasPool.get(args.id)
-            if (!canvas) {
-              return { success: false, error: `Canvas not found: ${args.id}` }
-            }
-          } else {
-            canvas = this._getActiveCanvas()
-          }
+          const canvas = this._getCanvasById(args.id)
           
           if (!canvas.isCreated()) {
             return { success: false, error: 'No canvas created' }
@@ -979,7 +967,7 @@ module.exports = function (Plugin) {
 
             return {
               success: true,
-              base64,
+              //base64,
               svg,
               mimeType: 'image/svg+xml',
             }
@@ -2080,6 +2068,7 @@ module.exports = function (Plugin) {
       add_poster_qrcode: {
         description: '添加二维码',
         inputSchema: z.object({
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           size: z.number().optional().describe('二维码大小，默认200'),
@@ -2303,6 +2292,7 @@ module.exports = function (Plugin) {
       add_poster_barcode: {
         description: '添加条形码',
         inputSchema: z.object({
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度，默认300'),
@@ -2338,6 +2328,7 @@ module.exports = function (Plugin) {
       compose_poster: {
         description: '使用组件配置一次性生成海报',
         inputSchema: z.object({
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
           components: z.array(z.object({
             type: z.enum([
               'background', 'rectangle', 'circle', 'line', 'polygon',
@@ -2486,35 +2477,35 @@ module.exports = function (Plugin) {
       /**
        * 导出为 Base64
        */
-      export_poster_base64: {
-        description: '导出画布为 Base64 编码',
-        inputSchema: z.object({
-          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
-          format: z.enum(['png', 'jpg']).optional().describe('格式'),
-          quality: z.number().optional().describe('JPEG质量'),
-        }),
-        execute: async (args) => {
-          try {
-            if (!this._getCanvasById(args.id).isCreated()) {
-              return { success: false, error: 'No canvas created' }
-            }
+    //   export_poster_base64: {
+    //     description: '导出画布为 Base64 编码',
+    //     inputSchema: z.object({
+    //       id: z.string().describe('画布ID，不填则使用当前活跃画布'),
+    //       format: z.enum(['png', 'jpg']).optional().describe('格式'),
+    //       quality: z.number().optional().describe('JPEG质量'),
+    //     }),
+    //     execute: async (args) => {
+    //       try {
+    //         if (!this._getCanvasById(args.id).isCreated()) {
+    //           return { success: false, error: 'No canvas created' }
+    //         }
 
-            const format = args.format || 'png'
-            const base64 = this._getCanvasById(args.id).toBase64(format, args.quality)
-            const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
+    //         const format = args.format || 'png'
+    //         const base64 = this._getCanvasById(args.id).toBase64(format, args.quality)
+    //         const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
 
-            return {
-              success: true,
-              base64,
-              format,
-              mimeType,
-            }
-          } catch (err) {
-            return { success: false, error: err.message }
-          }
-        },
-      },
-    }
+    //         return {
+    //           success: true,
+    //           base64,
+    //           format,
+    //           mimeType,
+    //         }
+    //       } catch (err) {
+    //         return { success: false, error: err.message }
+    //       }
+    //     },
+    //   },
+    // }
 
 
     async install(framework) {
