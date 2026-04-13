@@ -13,6 +13,7 @@ const PRESETS = require('./presets')
 const CanvasManager = require('./canvas')
 const { createFromConfig, COMPONENT_TYPES } = require('./composer')
 const { applyTemplate, getAvailableTemplates } = require('./templates')
+const { markdownToComponents } = require('./utils/markdown')
 const {
   addRectangle,
   addCircle,
@@ -2396,6 +2397,45 @@ module.exports = function (Plugin) {
           success: true,
           components: Object.keys(COMPONENT_TYPES),
         }),
+      },
+
+      /**
+       * Markdown 转海报组件配置
+       */
+      markdown_to_components: {
+        description: '将 Markdown 文本直接渲染到画布上',
+        inputSchema: z.object({
+          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
+          text: z.string().describe('Markdown 文本'),
+          startX: z.number().optional().describe('起始 X 坐标，默认 0'),
+          startY: z.number().optional().describe('起始 Y 坐标，默认 0'),
+          maxWidth: z.number().optional().describe('最大宽度，默认 600'),
+          defaultFontSize: z.number().optional().describe('默认字体大小，默认 24'),
+          defaultColor: z.string().optional().describe('默认颜色，默认 #1e293b'),
+          defaultFontFamily: z.string().optional().describe('默认字体'),
+          defaultLineHeight: z.number().optional().describe('默认行高，默认 1.5'),
+        }),
+        execute: async (args) => {
+          try {
+            const canvasManager = this._getCanvasById(args.id)
+            if (!canvasManager || !canvasManager.isCreated()) {
+              return { success: false, error: 'Canvas not found or not created' }
+            }
+            const project = canvasManager.getProject()
+            const canvas = canvasManager.getCanvas()
+
+            const { renderMarkdown } = require('./utils/markdown')
+            const results = renderMarkdown(project, canvas, args)
+
+            return {
+              success: true,
+              count: results.length,
+              results,
+            }
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
       },
 
       // ==================== 模板 ====================

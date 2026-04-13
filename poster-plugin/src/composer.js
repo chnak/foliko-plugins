@@ -2357,7 +2357,7 @@ function createTableComponent(project, canvas, {
   cellColor = '#333333', fontSize = 12, headerFontSize = 13, striped = true, stripeColor = '#fafafa', fontFamily
 }) {
   const elements = []
-  const tableFont = getFontFallbackChain(fontFamily, columns.map(c => c.title || '').join('') + rows.map(r => r.join('')).join('')).join(', ')
+
   // 确保 columns 是数组
   if (!Array.isArray(columns) || columns.length === 0) {
     return { success: true, elements, type: 'table' }
@@ -2366,6 +2366,8 @@ function createTableComponent(project, canvas, {
   if (!Array.isArray(rows)) {
     rows = []
   }
+
+  const tableFont = getFontFallbackChain(fontFamily, columns.map(c => c.title || '').join('') + rows.map(r => Array.isArray(r) ? r.join('') : String(r)).join('')).join(', ')
 
   const totalHeight = rowHeight * (rows.length + 1)
 
