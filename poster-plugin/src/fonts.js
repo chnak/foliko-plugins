@@ -609,7 +609,7 @@ function getFontFallbackChain(primaryFont, text = '') {
   const validated = validateFont(primaryFont || defaultFont.name)
 
   // 主字体（如果存在且不在链中）
-  if (validated && validated !== 'sans-serif' && !chain.includes(validated)) {
+  if (validated && !chain.includes(validated)) {
     chain.push(validated)
   }
 
@@ -631,7 +631,7 @@ function getFontFallbackChain(primaryFont, text = '') {
   const isPluginFont = primaryFont && pluginFontNames.some(
     pf => primaryFont.toLowerCase().includes(pf.toLowerCase())
   )
-  if (isPluginFont || !primaryFont || primaryFont === defaultFont.name) {
+  if (isPluginFont || !primaryFont) {
     // 添加所有已注册的插件字体作为回退
     for (const [name] of registeredFonts) {
       if (!chain.includes(name) && name !== validated) {

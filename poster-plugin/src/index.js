@@ -1528,7 +1528,7 @@ module.exports = function (Plugin) {
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().optional().describe('宽度'),
-          type: z.enum(['success', 'warning', 'error', 'info']).optional().describe('类型'),
+          notifType: z.enum(['success', 'warning', 'error', 'info']).optional().describe('类型'),
           title: z.string().optional().describe('标题'),
           message: z.string().optional().describe('消息内容'),
           showIcon: z.boolean().optional().describe('是否显示图标'),
@@ -1851,7 +1851,7 @@ module.exports = function (Plugin) {
         description: '添加图表组件（柱状图/饼图）',
         inputSchema: z.object({
           id: z.string().describe('画布ID，不填则使用当前活跃画布'),
-          type: z.enum(['bar', 'pie']).describe('图表类型'),
+          chartType: z.enum(['bar', 'pie']).optional().describe('图表类型'),
           x: z.number().describe('X坐标'),
           y: z.number().describe('Y坐标'),
           width: z.number().describe('宽度'),

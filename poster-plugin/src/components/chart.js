@@ -10,7 +10,7 @@ const { getFontFallbackChain, validateFont } = require('../fonts')
  */
 function createChart(project, canvas, params) {
   const {
-    type = 'bar',
+    chartType = 'bar',
     x,
     y,
     width,
@@ -28,7 +28,7 @@ function createChart(project, canvas, params) {
   // 获取字体回退链
   const chartFont = getFontFallbackChain(fontFamily, data.map(d => (d.label || '') + String(d.value)).join('')).join(', ')
 
-  if (type === 'bar' && data.length > 0) {
+  if (chartType === 'bar' && data.length > 0) {
     const maxValue = Math.max(...data.map(d => d.value))
     const barCount = data.length
     const totalGap = barGap * (barCount - 1)
@@ -84,7 +84,7 @@ function createChart(project, canvas, params) {
         elements.push({ type: 'text', id: labelText.id })
       }
     })
-  } else if (type === 'pie' && data.length > 0) {
+  } else if (chartType === 'pie' && data.length > 0) {
     const cx = x + width / 2
     const cy = y + height / 2
     const radius = Math.min(width, height) / 2 - 10

@@ -1569,15 +1569,15 @@ function createListItemComponent(project, canvas, { x = 0, y = 0, width = 400, i
   return { success: true, elements, type: 'listItem' }
 }
 
-function createNotificationComponent(project, canvas, { x, y, width = 360, type = 'info', title, message, showIcon = true, radius = 12 }) {
+function createNotificationComponent(project, canvas, { x, y, width = 360, notifType = 'info', title, message, showIcon = true, radius = 12 }) {
   const config = {
     success: { icon: '✓', bgColor: '#dcfce7', iconColor: '#22c55e', borderColor: '#22c55e' },
     warning: { icon: '⚠', bgColor: '#fef9c3', iconColor: '#eab308', borderColor: '#eab308' },
     error: { icon: '✕', bgColor: '#fee2e2', iconColor: '#ef4444', borderColor: '#ef4444' },
-    info: { icon: 'ℹ', bgColor: '#dbeafe', iconColor: '#3b82f6', borderColor: '#3b82f6' },
+    info: { icon: '℠', bgColor: '#dbeafe', iconColor: '#3b82f6', borderColor: '#3b82f6' },
   }
 
-  const c = config[type] || config.info
+  const c = config[notifType] || config.info
   const padding = 16
   const lineHeight = 22
   const iconSize = 24
@@ -2127,12 +2127,12 @@ function createChipComponent(project, canvas, {
  * 创建图表组件
  */
 function createChartComponent(project, canvas, {
-  type = 'bar', x, y, width, height, data = [], barColor = '#3b82f6',
+  chartType = 'bar', x, y, width, height, data = [], barColor = '#3b82f6',
   showLabels = true, showValues = true, barGap = 4
 }) {
   const elements = []
 
-  if (type === 'bar' && data.length > 0) {
+  if (chartType === 'bar' && data.length > 0) {
     const maxValue = Math.max(...data.map(d => d.value))
     const barCount = data.length
     const totalGap = barGap * (barCount - 1)
@@ -2177,7 +2177,7 @@ function createChartComponent(project, canvas, {
         elements.push({ type: 'text', id: labelText.id })
       }
     })
-  } else if (type === 'pie' && data.length > 0) {
+  } else if (chartType === 'pie' && data.length > 0) {
     const cx = x + width / 2
     const cy = y + height / 2
     const radius = Math.min(width, height) / 2 - 10

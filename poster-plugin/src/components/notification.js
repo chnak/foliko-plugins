@@ -24,7 +24,7 @@ function createNotification(project, canvas, args) {
   const {
     x, y,
     width = 360,
-    type = 'info',
+    notifType = 'info',
     title,
     message,
     showIcon = true,
@@ -56,14 +56,14 @@ function createNotification(project, canvas, args) {
       borderColor: '#ef4444',
     },
     info: {
-      icon: 'ℹ',
+      icon: '℠',
       bgColor: '#dbeafe',
       iconColor: '#3b82f6',
       borderColor: '#3b82f6',
     },
   }
 
-  const c = config[type] || config.info
+  const c = config[notifType] || config.info
   const padding = 16
   const lineHeight = 22
   const iconSize = 24
