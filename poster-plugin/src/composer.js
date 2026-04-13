@@ -1266,6 +1266,9 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
   const elements = []
   const statFont = getFontFallbackChain(fontFamily, (icon || '') + (label || '') + (value || '') + (change || '')).join(', ')
 
+  // 计算内边距（根据卡片尺寸自适应）
+  const paddingX = Math.max(16, width * 0.08)
+
   const bg = new paper.Path.Rectangle({
     point: [x, y],
     size: [width, height],
@@ -1276,42 +1279,64 @@ function createStatCardComponent(project, canvas, { x, y, width = 200, height = 
   bg.strokeWidth = 1
   elements.push({ type: 'rectangle', id: bg.id })
 
+  // 动态计算内容布局
+  const hasIcon = !!icon
+  const hasChange = !!change
+  const iconSize = Math.min(24, height * 0.2)
+  const valueSize = Math.min(28, height * 0.23)
+  const labelSize = Math.min(14, height * 0.12)
+  const changeSize = Math.min(14, height * 0.12)
+
+  // 计算内容总高度
+  let totalContentHeight = labelSize + valueSize
+  if (hasIcon) totalContentHeight += iconSize * 0.5
+  if (hasChange) totalContentHeight += changeSize
+
+  // 计算起始Y（垂直居中）
+  let currentY = y + (height - totalContentHeight) / 2
+
   if (icon) {
+    const iconY = currentY + iconSize * 0.7
     elements.push(new paper.PointText({
-      point: [x + 20, y + 35],
+      point: [x + paddingX, iconY],
       content: icon,
-      fontSize: 24,
+      fontSize: iconSize,
       fontFamily: statFont,
       fillColor: new paper.Color(iconColor),
       justification: 'left',
     }))
+    currentY += iconSize * 0.5
   }
 
+  const labelY = currentY + labelSize * 0.9
   elements.push(new paper.PointText({
-    point: [x + 20, y + 50 + (icon ? 10 : 0)],
+    point: [x + paddingX, labelY],
     content: label,
-    fontSize: 14,
+    fontSize: labelSize,
     fontFamily: statFont,
     fillColor: new paper.Color('#64748b'),
     justification: 'left',
   }))
+  currentY += labelSize * 1.3
 
+  const valueY = currentY + valueSize * 0.9
   elements.push(new paper.PointText({
-    point: [x + 20, y + 75 + (icon ? 10 : 0)],
+    point: [x + paddingX, valueY],
     content: value,
-    fontSize: 28,
+    fontSize: valueSize,
     fontFamily: statFont,
     fillColor: new paper.Color('#1e293b'),
     justification: 'left',
   }))
 
   if (change) {
+    const changeY = currentY + valueSize + changeSize * 1.2
     const changeColor = positive ? '#22c55e' : '#ef4444'
     const changeIcon = positive ? '↑' : '↓'
     elements.push(new paper.PointText({
-      point: [x + 20, y + 95 + (icon ? 10 : 0)],
+      point: [x + paddingX, changeY],
       content: `${changeIcon} ${change}`,
-      fontSize: 14,
+      fontSize: changeSize,
       fontFamily: statFont,
       fillColor: new paper.Color(changeColor),
       justification: 'left',
