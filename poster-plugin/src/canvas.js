@@ -203,11 +203,15 @@ class CanvasManager {
     this._project.view.update()
     this._project.view.draw()
 
-    // 使用 canvas.toBuffer() 获取真正的 Buffer
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
-    const buffer = this._canvas.toBuffer(mimeType, quality)
+    // paper.js 在 Node.js 下使用 HTMLCanvasElement，需要复制像素到 @napi-rs/canvas
+    const viewCanvas = this._project.view._element
+    const viewCtx = viewCanvas.getContext('2d')
+    const imgData = viewCtx.getImageData(0, 0, this._width, this._height)
+    const ctx = this._canvas.getContext('2d')
+    ctx.putImageData(imgData, 0, 0)
 
-    return buffer
+    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
+    return this._canvas.toBuffer(mimeType)
   }
 
   /**
@@ -218,12 +222,7 @@ class CanvasManager {
       throw new Error('No canvas created')
     }
 
-    this._project.view.update()
-    this._project.view.draw()
-
-    // 先获取 Buffer，再转换为 Base64
-    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
-    const buffer = this._canvas.toBuffer(mimeType, quality)
+    const buffer = this.toBuffer(format, quality)
     return buffer.toString('base64')
   }
 
