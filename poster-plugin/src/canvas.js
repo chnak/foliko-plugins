@@ -203,13 +203,11 @@ class CanvasManager {
     this._project.view.update()
     this._project.view.draw()
 
-    // 使用 paper.js 的 exportImage 方法导出
-    const image = this._project.exportImage({
-      asString: false,
-      format: format === 'jpg' ? 'jpeg' : 'png',
-    })
-    
-    return image
+    // 使用 canvas.toBuffer() 获取真正的 Buffer
+    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
+    const buffer = this._canvas.toBuffer(mimeType, quality)
+
+    return buffer
   }
 
   /**
@@ -223,13 +221,10 @@ class CanvasManager {
     this._project.view.update()
     this._project.view.draw()
 
-    // 使用 paper.js 的 exportImage 方法导出为 base64
-    const image = this._project.exportImage({
-      asString: true,
-      format: format === 'jpg' ? 'jpeg' : 'png',
-    })
-    
-    return image
+    // 先获取 Buffer，再转换为 Base64
+    const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png'
+    const buffer = this._canvas.toBuffer(mimeType, quality)
+    return buffer.toString('base64')
   }
 
   /**

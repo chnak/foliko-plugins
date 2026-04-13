@@ -2507,6 +2507,8 @@ module.exports = function (Plugin) {
     //   },
     // }
 
+    }
+
 
     async install(framework) {
       this._framework = framework
