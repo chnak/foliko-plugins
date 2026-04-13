@@ -95,9 +95,17 @@ function createChart(project, canvas, params) {
     data.forEach((item, index) => {
       const percentage = item.value / total
       const endAngle = currentAngle + percentage * 360
+      // 使用 lineTo 模拟弧线（arcTo 签名不适用于此场景）
       const path = new paper.Path()
       path.moveTo(cx, cy)
-      path.arc([cx, cy], radius, currentAngle * Math.PI / 180, endAngle * Math.PI / 180)
+      const segments = 36
+      const startRad = currentAngle * Math.PI / 180
+      const endRad = endAngle * Math.PI / 180
+      const angleStep = (endRad - startRad) / segments
+      for (let i = 1; i <= segments; i++) {
+        const angle = startRad + angleStep * i
+        path.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle))
+      }
       path.closePath()
       path.fillColor = new paper.Color(item.color || colors[index % colors.length])
       if (project && project.activeLayer) {

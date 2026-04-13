@@ -2107,9 +2107,15 @@ function createProgressCircleComponent(project, canvas, {
     const startRad = startAngle * Math.PI / 180
     const endRad = endAngle * Math.PI / 180
 
+    // 使用 lineTo 模拟弧线（与 components/progressCircle.js 保持一致）
     const arc = new paper.Path()
     arc.moveTo(cx + radius * Math.cos(startRad), cy + radius * Math.sin(startRad))
-    arc.arcTo([cx, cy], radius, endRad - startRad)
+    const segments = 36
+    const angleStep = (endRad - startRad) / segments
+    for (let i = 1; i <= segments; i++) {
+      const angle = startRad + angleStep * i
+      arc.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle))
+    }
     arc.strokeColor = new paper.Color(fillColor)
     arc.strokeWidth = strokeWidth
     arc.strokeCap = 'round'
@@ -2248,9 +2254,17 @@ function createChartComponent(project, canvas, {
     data.forEach((item, index) => {
       const percentage = item.value / total
       const endAngle = currentAngle + percentage * 360
+      // 使用 lineTo 模拟弧线（arcTo 签名不适用于此场景）
       const path = new paper.Path()
       path.moveTo(cx, cy)
-      path.arc([cx, cy], radius, currentAngle * Math.PI / 180, endAngle * Math.PI / 180)
+      const segments = 36
+      const startRad = currentAngle * Math.PI / 180
+      const endRad = endAngle * Math.PI / 180
+      const angleStep = (endRad - startRad) / segments
+      for (let i = 1; i <= segments; i++) {
+        const angle = startRad + angleStep * i
+        path.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle))
+      }
       path.closePath()
       path.fillColor = new paper.Color(item.color || colors[index % colors.length])
       elements.push({ type: 'path', id: path.id })
