@@ -2077,34 +2077,34 @@ module.exports = function (Plugin) {
       /**
        * 添加二维码
        */
-      // add_poster_qrcode: {
-      //   description: '添加二维码',
-      //   inputSchema: z.object({
-      //     x: z.number().describe('X坐标'),
-      //     y: z.number().describe('Y坐标'),
-      //     size: z.number().optional().describe('二维码大小，默认200'),
-      //     content: z.string().describe('二维码内容'),
-      //     color: z.string().optional().describe('前景色'),
-      //     backgroundColor: z.string().optional().describe('背景色'),
-      //     logo: z.string().optional().describe('中间logo图片路径'),
-      //     logoSize: z.number().optional().describe('logo大小'),
-      //     opacity: z.number().optional().describe('透明度'),
-      //   }),
-      //   execute: async (args) => {
-      //     try {
-      //       if (!this._getCanvasById(args.id).isCreated()) {
-      //         return { success: false, error: 'No canvas created' }
-      //       }
-      //       return await createQRCode(
-      //         this._getCanvasById(args.id).getProject(),
-      //         this._getCanvasById(args.id).getCanvas(),
-      //         args
-      //       )
-      //     } catch (err) {
-      //       return { success: false, error: err.message }
-      //     }
-      //   },
-      // },
+      add_poster_qrcode: {
+        description: '添加二维码',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          size: z.number().optional().describe('二维码大小，默认200'),
+          content: z.string().describe('二维码内容'),
+          color: z.string().optional().describe('前景色'),
+          backgroundColor: z.string().optional().describe('背景色'),
+          logo: z.string().optional().describe('中间logo图片路径'),
+          logoSize: z.number().optional().describe('logo大小'),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._getCanvasById(args.id).isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createQRCode(
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
 
       /**
        * 添加装饰边框
@@ -2300,35 +2300,35 @@ module.exports = function (Plugin) {
       /**
        * 添加条形码
        */
-      // add_poster_barcode: {
-      //   description: '添加条形码',
-      //   inputSchema: z.object({
-      //     x: z.number().describe('X坐标'),
-      //     y: z.number().describe('Y坐标'),
-      //     width: z.number().optional().describe('宽度，默认300'),
-      //     height: z.number().optional().describe('高度，默认100'),
-      //     content: z.string().describe('条形码内容'),
-      //     color: z.string().optional().describe('条形码颜色'),
-      //     showText: z.boolean().optional().describe('是否显示文字'),
-      //     textColor: z.string().optional().describe('文字颜色'),
-      //     fontSize: z.number().optional().describe('字体大小'),
-      //     opacity: z.number().optional().describe('透明度'),
-      //   }),
-      //   execute: async (args) => {
-      //     try {
-      //       if (!this._getCanvasById(args.id).isCreated()) {
-      //         return { success: false, error: 'No canvas created' }
-      //       }
-      //       return await createBarcode(
-      //         this._getCanvasById(args.id).getProject(),
-      //         this._getCanvasById(args.id).getCanvas(),
-      //         args
-      //       )
-      //     } catch (err) {
-      //       return { success: false, error: err.message }
-      //     }
-      //   },
-      // },
+      add_poster_barcode: {
+        description: '添加条形码',
+        inputSchema: z.object({
+          x: z.number().describe('X坐标'),
+          y: z.number().describe('Y坐标'),
+          width: z.number().optional().describe('宽度，默认300'),
+          height: z.number().optional().describe('高度，默认100'),
+          content: z.string().describe('条形码内容'),
+          color: z.string().optional().describe('条形码颜色'),
+          showText: z.boolean().optional().describe('是否显示文字'),
+          textColor: z.string().optional().describe('文字颜色'),
+          fontSize: z.number().optional().describe('字体大小'),
+          opacity: z.number().optional().describe('透明度'),
+        }),
+        execute: async (args) => {
+          try {
+            if (!this._getCanvasById(args.id).isCreated()) {
+              return { success: false, error: 'No canvas created' }
+            }
+            return await createBarcode(
+              this._getCanvasById(args.id).getProject(),
+              this._getCanvasById(args.id).getCanvas(),
+              args
+            )
+          } catch (err) {
+            return { success: false, error: err.message }
+          }
+        },
+      },
 
       // ==================== 组件化海报生成 ====================
 
