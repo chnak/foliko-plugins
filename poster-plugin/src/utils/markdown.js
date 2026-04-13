@@ -489,16 +489,24 @@ function createTableComponents(project, tableLines, startX, currentY, maxWidth, 
     cellX = startX
     for (let j = 0; j < colCount; j++) {
       const cellText = row[j] || ''
-      components.push({
-        type: 'richText',
-        x: cellX + cellPadding,
-        y: currentY + cellPadding + cellFontSize,
-        width: colWidth - cellPadding * 2,
-        text: cellText,
-        fontSize: cellFontSize,
-        color: defaultColor,
-        fontFamily: defaultFontFamily,
-        align: 'left',
+      // 计算文本在单元格内的换行
+      const cellWidth = colWidth - cellPadding * 2
+      const lines = wrapTextToLines(cellText, cellWidth, cellFontSize)
+
+      // 逐行添加文本
+      const lineHeight = cellFontSize * 1.4
+      lines.forEach((line, lineIdx) => {
+        components.push({
+          type: 'richText',
+          x: cellX + cellPadding,
+          y: currentY + cellPadding + cellFontSize + lineIdx * lineHeight,
+          width: cellWidth,
+          text: line,
+          fontSize: cellFontSize,
+          color: defaultColor,
+          fontFamily: defaultFontFamily,
+          align: 'left',
+        })
       })
       cellX += colWidth
     }
