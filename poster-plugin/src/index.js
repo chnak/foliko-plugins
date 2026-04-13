@@ -277,24 +277,28 @@ module.exports = function (Plugin) {
       destroy_poster_canvas: {
         description: '销毁指定画布，释放内存',
         inputSchema: z.object({
-          id: z.string().describe('画布ID，不填则销毁当前活跃画布'),
+          id: z.string().optional().describe('画布ID，不填则销毁当前活跃画布'),
         }),
         execute: async (args) => {
-          const canvas = this._getCanvasById(args.id)
+          const targetId = args.id || this._activeCanvasId
+          if (!targetId) {
+            return { success: false, error: 'No canvas to destroy' }
+          }
+          const canvas = this._canvasPool.get(targetId)
           if (!canvas) {
-            return { success: false, error: `Canvas not found: ${id}` }
+            return { success: false, error: `Canvas not found: ${targetId}` }
           }
           canvas.reset()
-          this._canvasPool.delete(id)
+          this._canvasPool.delete(targetId)
           // 同时删除布局管理器
-          this._layoutPool.delete(id)
-          
+          this._layoutPool.delete(targetId)
+
           // 如果销毁的是活跃画布，切换到其他画布
-          if (id === this._activeCanvasId) {
+          if (targetId === this._activeCanvasId) {
             const remaining = Array.from(this._canvasPool.keys())
             this._activeCanvasId = remaining.length > 0 ? remaining[remaining.length - 1] : null
           }
-          
+
           return {
             success: true,
             message: `Canvas ${id} destroyed`,

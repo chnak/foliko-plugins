@@ -510,9 +510,10 @@ function refreshFontList() {
 
 /**
  * 验证字体是否可用 - 支持字体别名映射
+ * 返回 null 表示字体不存在（会进入回退链）
  */
 function validateFont(fontFamily) {
-  if (!fontFamily) return defaultFont.name
+  if (!fontFamily) return null
 
   // 直接匹配
   if (registeredFonts.has(fontFamily)) return fontFamily
@@ -537,7 +538,8 @@ function validateFont(fontFamily) {
     }
   }
 
-  return defaultFont.name
+  // 字体不存在，返回 null 让调用者将其加入回退链
+  return null
 }
 
 /**
@@ -590,23 +592,53 @@ function getDefaultFontFamily() {
  * 获取字体 fallback 链
  * @napi-rs/canvas 支持逗号分隔的字体链
  * emoji 字体始终在末尾，确保 emoji 能正确显示
+ * 不存在的字体会被加入回退链第一优先位置
  */
 function getFontFallbackChain(primaryFont, text = '') {
   const chain = []
+
+  // 如果请求的字体不存在，仍将其加入回退链第一优先（用于字体回退）
+  if (primaryFont && primaryFont !== 'sans-serif' && primaryFont !== defaultFont.name) {
+    const validated = validateFont(primaryFont)
+    if (!validated) {
+      // 字体不存在，将其加入回退链第一位置
+      chain.push(primaryFont)
+    }
+  }
+
   const validated = validateFont(primaryFont || defaultFont.name)
 
-  // 主字体
-  if (validated && validated !== 'sans-serif') {
+  // 主字体（如果存在且不在链中）
+  if (validated && validated !== 'sans-serif' && !chain.includes(validated)) {
     chain.push(validated)
   }
 
-  // 中文字体（如果检测到中文）
+  // 中文字体（如果检测到中文或 primaryFont 是中文字体）
   const hasChinese = /[\u4e00-\u9fff]/.test(text || primaryFont || '')
-  if (hasChinese) {
-    const chineseFonts = ['Microsoft YaHei', 'PingFang SC', 'SimHei', 'Noto Sans CJK SC', 'SimSun']
-    for (const cf of chineseFonts) {
-      if (!chain.includes(cf) && registeredFonts.has(cf)) {
-        chain.push(cf)
+  const isChinesePrimary = isCommonChineseFontName(primaryFont) || isChineseFont(primaryFont)
+
+  if (hasChinese || isChinesePrimary) {
+    // 添加所有已注册的中文字体到 fallback 链
+    for (const [name] of registeredFonts) {
+      if (isChineseFont(name) && !chain.includes(name)) {
+        chain.push(name)
+      }
+    }
+  }
+
+  // 如果主字体来自插件字体目录，自动添加所有其他已注册字体作为回退
+  const pluginFontNames = ['msyh', 'wryh', 'PatuaOne', 'PatuaOne-Regular', 'SegUIVar', 'seguisym', 'seguiemj']
+  const isPluginFont = primaryFont && pluginFontNames.some(
+    pf => primaryFont.toLowerCase().includes(pf.toLowerCase())
+  )
+  if (isPluginFont || !primaryFont || primaryFont === defaultFont.name) {
+    // 添加所有已注册的插件字体作为回退
+    for (const [name] of registeredFonts) {
+      if (!chain.includes(name) && name !== validated) {
+        const isPluginSource = registeredFonts.get(name)?.source === 'plugin'
+        if (isPluginSource) {
+          chain.push(name)
+        }
       }
     }
   }
@@ -617,7 +649,8 @@ function getFontFallbackChain(primaryFont, text = '') {
   }
 
   // emoji 字体始终添加到末尾（确保 emoji 能显示）
-  const emojiFontList = ['Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', 'Noto Emoji', 'Symbola', 'seguiemj']
+  // 优先使用插件字体目录中的 emoji 字体
+  const emojiFontList = ['seguiemj', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Noto Emoji', 'Symbola']
   for (const ef of emojiFontList) {
     if (!chain.includes(ef) && registeredFonts.has(ef)) {
       chain.push(ef)
@@ -634,6 +667,25 @@ function getFontFallbackChain(primaryFont, text = '') {
   }
 
   return chain
+}
+
+/**
+ * 判断是否为中文字体
+ */
+function isChineseFont(fontName) {
+  if (!fontName) return false
+  const lower = fontName.toLowerCase()
+  // 包含中文字体关键词或是 CJK 字体
+  return lower.includes('cjk') ||
+         lower.includes('hei') ||
+         lower.includes('song') ||
+         lower.includes('kai') ||
+         lower.includes('ming') ||
+         lower.includes('fang') ||
+         lower.includes('yuan') ||
+         lower.includes('yahei') ||
+         lower.includes('pingfang') ||
+         /[\u4e00-\u9fff]/.test(fontName)
 }
 
 /**

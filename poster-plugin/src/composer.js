@@ -1764,19 +1764,9 @@ async function createImageFrameComponent(project, canvas, {
 
 // 辅助函数：加载图片
 async function _loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => resolve(img)
-    img.onerror = () => {
-      if (src.startsWith('data:')) {
-        img.src = src
-      } else {
-        reject(new Error(`Failed to load image: ${src}`))
-      }
-    }
-    img.src = src
-  })
+  const { loadImage } = require('canvas')
+  const imageData = await loadImage(src)
+  return imageData
 }
 
 /**
