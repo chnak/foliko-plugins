@@ -2432,7 +2432,9 @@ module.exports = function (Plugin) {
             // 导出
             const format = 'png'
             const outputDir = args.outputDir || '.'
-            const filename = `${args.output}.${format}`
+            // 从 output 中提取不含扩展名的文件名（兼容传入完整路径的情况）
+            const outputBasename = path.basename(args.output, path.extname(args.output))
+            const filename = `${outputBasename}.${format}`
             await fs.promises.mkdir(outputDir, { recursive: true })
             const filepath = path.join(outputDir, filename)
             const buffer = this._getCanvasById(args.id).toBuffer(format)
@@ -2484,7 +2486,9 @@ module.exports = function (Plugin) {
 
             const format = args.format || 'png'
             const outputDir = args.outputDir || '.'
-            const filename = `${args.filename}.${format}`
+            // 从 filename 中提取不含扩展名的文件名（兼容传入完整路径的情况）
+            const filenameBasename = path.basename(args.filename, path.extname(args.filename))
+            const filename = `${filenameBasename}.${format}`
             await fs.promises.mkdir(outputDir, { recursive: true })
             const filepath = path.join(outputDir, filename)
             const buffer = this._getCanvasById(args.id).toBuffer(format, args.quality)
