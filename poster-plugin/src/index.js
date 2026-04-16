@@ -300,7 +300,7 @@ module.exports = function (Plugin) {
 
           return {
             success: true,
-            message: `Canvas ${id} destroyed`,
+            message: `Canvas ${targetId} destroyed`,
             activeId: this._activeCanvasId,
           }
         },
