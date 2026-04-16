@@ -12,7 +12,6 @@ const fs = require('fs')
 const PRESETS = require('./presets')
 const CanvasManager = require('./canvas')
 const { createFromConfig, COMPONENT_TYPES } = require('./composer')
-const { applyTemplate, getAvailableTemplates } = require('./templates')
 const {
   addRectangle,
   addCircle,
@@ -2395,72 +2394,6 @@ module.exports = function (Plugin) {
         execute: async () => ({
           success: true,
           components: Object.keys(COMPONENT_TYPES),
-        }),
-      },
-
-      // ==================== 模板 ====================
-
-      /**
-       * 一键生成海报
-       */
-      generate_poster: {
-        description: '使用预设模板一键生成海报',
-        inputSchema: z.object({
-          id: z.string().describe('画布ID，不填则使用当前活跃画布'),
-          template: z.enum(['modern', 'business', 'social', 'simple', 'tech', 'gradient']).describe('模板类型'),
-          title: z.string().describe('主标题'),
-          subtitle: z.string().optional().describe('副标题'),
-          background: z.string().optional().describe('背景色'),
-          accentColor: z.string().optional().describe('强调色'),
-          output: z.string().describe('输出文件名'),
-          outputDir: z.string().optional().describe('输出目录'),
-        }),
-        execute: async (args) => {
-          try {
-            if (!this._getCanvasById(args.id).isCreated()) {
-              return { success: false, error: 'No canvas created' }
-            }
-
-            // 应用模板
-            applyTemplate(
-              this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
-              args.template,
-              args
-            )
-
-            // 导出
-            const format = 'png'
-            const outputDir = args.outputDir || '.'
-            // 从 output 中提取不含扩展名的文件名（兼容传入完整路径的情况）
-            const outputBasename = path.basename(args.output, path.extname(args.output))
-            const filename = `${outputBasename}.${format}`
-            await fs.promises.mkdir(outputDir, { recursive: true })
-            const filepath = path.join(outputDir, filename)
-            const buffer = this._getCanvasById(args.id).toBuffer(format)
-            await fs.promises.writeFile(filepath, buffer)
-
-            return {
-              success: true,
-              filepath,
-              template: args.template,
-              size: buffer.length,
-            }
-          } catch (err) {
-            return { success: false, error: err.message }
-          }
-        },
-      },
-
-      /**
-       * 列出可用模板
-       */
-      list_poster_templates: {
-        description: '列出所有可用的海报模板',
-        inputSchema: z.object({}),
-        execute: async () => ({
-          success: true,
-          templates: getAvailableTemplates(),
         }),
       },
 
