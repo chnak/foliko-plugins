@@ -361,7 +361,7 @@ function initFonts() {
       }
 
       // 特殊处理中文文件名
-      if (fontName === '微软雅黑' || fontName === '微软雅黑粗体') {
+      if (fontName === '微软雅黑' || fontName === '微软雅黑粗体' || fontName === 'msyh') {
         fontName = fontName.includes('粗体') ? 'Microsoft YaHei' : 'Microsoft YaHei'
       }
 
