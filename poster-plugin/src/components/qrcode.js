@@ -7,6 +7,8 @@ const QRCode = require('qrcode')
 
 /**
  * 创建二维码
+ * @param {paper.Project} project - paper.js 项目
+ * @param {Object} args - 参数
  */
 async function createQRCode(project, args) {
   const {
@@ -39,23 +41,28 @@ async function createQRCode(project, args) {
 
     // 添加logo
     if (logo) {
-      const ls = logoSize || size * 0.2
-      const { raster: logoRaster } = await loadImageAsRaster(project, logo, {
-        x: x + (size - ls) / 2,
-        y: y + (size - ls) / 2,
-        width: ls,
-        height: ls
-      }, opacity)
+      try {
+        const ls = logoSize || size * 0.2
+        const { raster: logoRaster } = await loadImageAsRaster(project, logo, {
+          x: x + (size - ls) / 2,
+          y: y + (size - ls) / 2,
+          width: ls,
+          height: ls
+        }, opacity)
 
-      // 添加白色背景
-      const logoBg = new paper.Path.Rectangle({
-        point: [x + (size - ls) / 2 - 5, y + (size - ls) / 2 - 5],
-        size: [ls + 10, ls + 10],
-        fillColor: new paper.Color(backgroundColor),
-        radius: 4,
-      })
-      logoBg.sendToBack()
-      items.push(logoRaster)
+        // 添加白色背景
+        const logoBg = new paper.Path.Rectangle({
+          point: [x + (size - ls) / 2 - 5, y + (size - ls) / 2 - 5],
+          size: [ls + 10, ls + 10],
+          fillColor: new paper.Color(backgroundColor),
+          radius: 4,
+        })
+        logoBg.sendToBack()
+        items.push(logoRaster)
+      } catch (logoErr) {
+        // logo 加载失败不影响二维码主体
+        console.warn('QR code logo load failed:', logoErr.message)
+      }
     }
 
     return {
