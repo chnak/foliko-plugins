@@ -2109,7 +2109,6 @@ module.exports = function (Plugin) {
             }
             return await createQRCode(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2143,7 +2142,6 @@ module.exports = function (Plugin) {
             }
             return await createFrame(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2188,7 +2186,6 @@ module.exports = function (Plugin) {
             }
             return await createBubble(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2230,7 +2227,6 @@ module.exports = function (Plugin) {
             }
             return await createRibbon(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2264,7 +2260,6 @@ module.exports = function (Plugin) {
             }
             return await createSeal(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2304,7 +2299,6 @@ module.exports = function (Plugin) {
             }
             return await createHighlightText(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
@@ -2339,7 +2333,6 @@ module.exports = function (Plugin) {
             }
             return await createBarcode(
               this._getCanvasById(args.id).getProject(),
-              this._getCanvasById(args.id).getCanvas(),
               args
             )
           } catch (err) {
