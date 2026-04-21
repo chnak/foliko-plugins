@@ -83,21 +83,32 @@ async function main() {
   features.forEach((f, i) => {
     const col = i % 3
     const row = Math.floor(i / 3)
-    const baseX = 320 + col * 400
-    const baseY = 300 + row * 200
 
-    // 卡片背景
+    // 网格参数：卡片350x160，间距100
+    // 中心卡片1200x700，起点360,190
+    // 网格总尺寸：3*350+2*100=1250宽，2*160+1*200=520高
+    const cardW = 350, cardH = 160, gap = 100
+    const gridW = 3 * cardW + 2 * gap  // 1250
+    const gridH = 2 * cardH + 1 * gap   // 520
+    const startX = 360 + (1200 - gridW) / 2  // 335
+    const startY = 190 + (700 - gridH) / 2   // 280
+
+    // baseX是卡片的中心点
+    const baseX = startX + cardW / 2 + col * (cardW + gap)
+    const baseY = startY + cardH / 2 + row * (cardH + gap)
+
+    // 卡片背景（位置是中心点，使用anchor[0.5, 0.5]）
     mainLayer.addElement(new RectElement({
       x: baseX,
       y: baseY,
-      width: 350,
-      height: 160,
+      width: cardW,
+      height: cardH,
       anchor: [0.5, 0.5],
       fillColor: '#1e1e28',
       borderRadius: 16
     }))
 
-    // 图标
+    // 图标（位置是中心点）
     mainLayer.addElement(new TextElement({
       text: f.icon,
       x: baseX,
@@ -106,7 +117,7 @@ async function main() {
       textAlign: 'center'
     }))
 
-    // 标题
+    // 标题（位置是中心点）
     mainLayer.addElement(new TextElement({
       text: f.title,
       x: baseX,

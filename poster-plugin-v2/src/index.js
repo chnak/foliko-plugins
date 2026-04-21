@@ -12,6 +12,7 @@ const { Layer } = require('./core/Layer')
 const { Component } = require('./core/Component')
 const { BaseElement } = require('./core/BaseElement')
 const { RectElement, CircleElement, TextElement, ImageElement } = require('./elements')
+const { Button, Badge, Card, CTA, Chip, Avatar, Divider, Progress, Rating, Quote, Timeline, Star } = require('./components')
 
 module.exports = {
   // 核心类
@@ -24,5 +25,19 @@ module.exports = {
   RectElement,
   CircleElement,
   TextElement,
-  ImageElement
+  ImageElement,
+
+  // 高级组件
+  Button,
+  Badge,
+  Card,
+  CTA,
+  Chip,
+  Avatar,
+  Divider,
+  Progress,
+  Rating,
+  Quote,
+  Timeline,
+  Star,
 }

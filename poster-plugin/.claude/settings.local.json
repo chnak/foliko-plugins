@@ -11,7 +11,11 @@
       "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js && ls -la output/)",
       "Bash(node examples/debug-component.js 2>&1)",
       "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js && node examples/debug-component.js 2>&1)",
-      "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js 2>&1)"
+      "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js 2>&1)",
+      "mcp__MiniMax__understand_image",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/debug-position.js && node examples/debug-component.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/layout.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/components.js)"
     ]
   }
 }
