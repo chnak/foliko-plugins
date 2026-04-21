@@ -65,10 +65,11 @@ class Avatar extends Component {
       this._bgElement._paperItem.position = new paper.Point(absX, absY)
     }
 
-    // 首字母
+    // 首字母 - 使用 fontSize/3 偏移实现视觉居中
     if (this._textElement && this._textElement._paperItem) {
+      const fontSize = this.size * 0.4
       this._textElement.x = absX
-      this._textElement.y = absY + this.size * 0.15
+      this._textElement.y = absY + fontSize / 3
       this._textElement.render(paper, context)
     }
   }

@@ -44,8 +44,14 @@ class TextElement extends BaseElement {
     // 解析字体大小
     const fontSize = this._resolvePercent(this.fontSize, context.height)
 
-    // 设置位置
-    this._paperItem.position = new paper.Point(x, y)
+    // 根据对齐方式设置位置
+    // point是文本基线的起始点（left对齐时），position是中心点
+    if (this.textAlign === 'center') {
+      this._paperItem.position = new paper.Point(x, y)
+    } else {
+      this._paperItem.point = new paper.Point(x, y)
+    }
+
     this._paperItem.fontSize = fontSize
 
     // 更新字体回退链
