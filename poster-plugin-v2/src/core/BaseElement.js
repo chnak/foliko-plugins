@@ -63,8 +63,14 @@ class BaseElement {
     if (!this._paperItem) return
 
     // 更新位置（支持百分比）
-    const absoluteX = this._resolvePercent(this.x, context.width)
-    const absoluteY = this._resolvePercent(this.y, context.height)
+    let absoluteX = this._resolvePercent(this.x, context.width)
+    let absoluteY = this._resolvePercent(this.y, context.height)
+
+    // 应用锚点偏移
+    const anchorX = this.anchor ? this.anchor[0] : 0
+    const anchorY = this.anchor ? this.anchor[1] : 0
+    absoluteX = absoluteX - (this.width || 0) * anchorX
+    absoluteY = absoluteY - (this.height || 0) * anchorY
 
     this._paperItem.position = new paper.Point(absoluteX, absoluteY)
     this._paperItem.opacity = this.opacity

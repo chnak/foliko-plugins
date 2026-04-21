@@ -94,12 +94,6 @@ class Component {
     const absWidth = this._resolvePercent(this.width, context.width)
     const absHeight = this._resolvePercent(this.height, context.height)
 
-    // 组件内部上下文（相对于组件自身）
-    const innerContext = {
-      width: absWidth,
-      height: absHeight
-    }
-
     // 渲染背景
     if (this._bgElement && this._bgElement._paperItem) {
       this._bgElement._paperItem.position = new paper.Point(
@@ -119,20 +113,11 @@ class Component {
       const absoluteX = absX + childX
       const absoluteY = absY + childY
 
-      // 创建绝对上下文
-      const absoluteContext = {
-        width: context.width,
-        height: context.height
-      }
-
       // 更新子元素位置
       if (element._paperItem) {
         element._paperItem.position = new paper.Point(absoluteX, absoluteY)
         element._paperItem.opacity = element.opacity * this.opacity
       }
-
-      // 渲染子元素（传入组件尺寸作为参考）
-      element.render(paper, innerContext)
     }
   }
 

@@ -47,8 +47,14 @@ class ImageElement extends BaseElement {
     if (!this.visible) return
 
     // 处理百分比位置
-    const x = this._resolvePercent(this.x, context.width)
-    const y = this._resolvePercent(this.y, context.height)
+    let x = this._resolvePercent(this.x, context.width)
+    let y = this._resolvePercent(this.y, context.height)
+
+    // 应用锚点偏移
+    const anchorX = this.anchor ? this.anchor[0] : 0
+    const anchorY = this.anchor ? this.anchor[1] : 0
+    x = x - this.width * anchorX
+    y = y - this.height * anchorY
 
     // 处理百分比尺寸
     const width = this._resolvePercent(
