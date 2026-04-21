@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d/code/foliko-plugins/poster-plugin-v2 && npm install 2>&1 | tail -20)",
+      "Bash(node examples/basic.js 2>&1)",
+      "Bash(node examples/component.js 2>&1)",
+      "Bash(node examples/layout.js 2>&1)",
+      "Bash(node examples/component.js 2>&1 && node examples/layout.js 2>&1)",
+      "Bash(node examples/debug-position.js 2>&1)",
+      "Bash(node examples/basic.js 2>&1 && node examples/layout.js 2>&1)",
+      "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js && ls -la output/)",
+      "Bash(node examples/debug-component.js 2>&1)",
+      "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js && node examples/debug-component.js 2>&1)",
+      "Bash(node examples/basic.js && node examples/component.js && node examples/layout.js 2>&1)"
+    ]
+  }
+}

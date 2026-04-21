@@ -1,0 +1,23 @@
+{
+  "name": "poster-plugin-v2",
+  "version": "2.0.0",
+  "description": "新一代海报制作插件 - 基于 Paper.js，支持多层级、组件化、相对坐标",
+  "main": "src/index.js",
+  "scripts": {
+    "example:basic": "node examples/basic.js",
+    "example:component": "node examples/component.js",
+    "example:layout": "node examples/layout.js"
+  },
+  "keywords": ["poster", "banner", "design", "paper.js", "foliko"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "paper": "^0.12.18",
+    "canvas": "npm:@napi-rs/canvas@latest",
+    "fontkit": "^2.0.4",
+    "jsdom": "^16.2.2"
+  },
+  "overrides": {
+    "canvas": "npm:@napi-rs/canvas@latest"
+  }
+}
