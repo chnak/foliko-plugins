@@ -15,7 +15,23 @@
       "mcp__MiniMax__understand_image",
       "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/debug-position.js && node examples/debug-component.js)",
       "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/layout.js)",
-      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/components.js)"
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/components.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/components-v2.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/poster-demo.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/namecard-demo.js && node examples/poster-event.js && node examples/poster-promo.js && node examples/book-page.js)",
+      "Bash(ls -la D:/code/foliko-plugins/poster-plugin-v2/output/*.png | tail -10)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node -e \"require\\('./src/components/Stack.js'\\)\")",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && rm src/components/Stack.js examples/stack*.js examples/stack-*.png 2>/dev/null; ls examples/stack* 2>/dev/null || echo \"Stack files removed\")",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/poster-demo.js && node examples/book-page.js)",
+      "Bash(cd D:/code/foliko-plugins/poster-plugin-v2 && node examples/row-col-layout.js)",
+      "Bash(node examples/row-col-layout.js)",
+      "Bash(cp -r \"D:/code/foliko-plugins/poster-plugin-v2\" \"D:/code/FKPoster\" && rm -rf \"D:/code/foliko-plugins/poster-plugin-v2\")",
+      "Bash(cd D:/code/FKPoster && node examples/poster-event.js 2>&1 | tail -3)",
+      "Bash(cd D:/code/FKPoster && node examples/namecard-demo.js 2>&1 | tail -3)",
+      "Bash(cd D:/code/FKPoster && node examples/components-v2.js 2>&1)",
+      "Bash(cd D:/code/FKPoster && node examples/components.js 2>&1)",
+      "Bash(cd D:/code/FKPoster && node test-all-components.js 2>&1)",
+      "Bash(node test-all-components.js 2>&1)"
     ]
   }
 }
