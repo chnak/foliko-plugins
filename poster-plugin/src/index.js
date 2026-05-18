@@ -2471,19 +2471,19 @@ module.exports = function (Plugin) {
 
     async install(framework) {
       this._framework = framework
-      console.log('[poster] Poster plugin installed (v1.1.0)')
-      console.log('[poster] Components:', Object.keys(COMPONENT_TYPES).join(', '))
+      // console.log('[poster] Poster plugin installed (v1.1.0)')
+      // console.log('[poster] Components:', Object.keys(COMPONENT_TYPES).join(', '))
       
       return this
     }
 
     start(framework) {
-      console.log('[poster] Poster plugin started')
+      // console.log('[poster] Poster plugin started')
     }
 
 
     reload(framework) {
-      console.log('[poster] Reloading poster plugin')
+      // console.log('[poster] Reloading poster plugin')
       this._framework = framework
     }
 
@@ -2495,7 +2495,7 @@ module.exports = function (Plugin) {
       this._canvasPool.clear()
       this._layoutPool.clear()
       this._framework = null
-      console.log('[poster] Poster plugin uninstalled')
+      // console.log('[poster] Poster plugin uninstalled')
     }
   }
 }
